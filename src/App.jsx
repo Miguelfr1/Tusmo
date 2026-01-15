@@ -29,7 +29,9 @@ const appId = 'tusmo-game-v1';
 
 // --- DATA & DICTIONARY ---
 
-const DICTIONARY_URL = "https://raw.githubusercontent.com/words/an-array-of-french-words/master/index.json";
+// Utilisation d'une liste de fréquence pour éviter les mots trop rares ("sarclat")
+// Source : HermitDave Frequency Words (2018)
+const DICTIONARY_URL = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt";
 
 const FALLBACK_WORDS = [
   "ARBRE", "AVION", "BALLE", "BATON", "BOITE", "BOULE", "BRIQUE", "CADRE", "CHIEN", "CRANE",
@@ -187,8 +189,11 @@ const Keyboard = ({ onKey, usedKeys }) => {
 
   const getKeyStyle = (key) => {
     const status = usedKeys[key];
-    // INCREASED SIZE HERE: h-12/14, w-8/11, text-sm/lg
-    let style = "h-12 sm:h-14 w-8 sm:w-11 rounded font-bold text-sm sm:text-lg flex items-center justify-center transition-colors shadow-sm select-none cursor-pointer active:scale-95 duration-200 ";
+    // --- MODIFICATION CLAVIER MOBILE (PLUS GRAND) ---
+    // h-16 (64px) sur mobile, h-20 (80px) sur desktop
+    // w-8 (32px) sur mobile pour tenir 10 touches, w-14 sur desktop
+    // text-xl sur mobile, text-2xl sur desktop
+    let style = "h-16 sm:h-20 w-8 sm:w-14 rounded-md font-bold text-xl sm:text-2xl flex items-center justify-center transition-colors shadow-sm select-none cursor-pointer active:scale-95 duration-200 ";
     
     if (status === 'correct') return style + "bg-red-600 text-white border-b-4 border-red-800";
     if (status === 'present') return style + "bg-yellow-400 text-black border-b-4 border-yellow-600";
@@ -197,7 +202,7 @@ const Keyboard = ({ onKey, usedKeys }) => {
   };
 
   return (
-    <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-3xl px-2 select-none">
+    <div className="mt-4 flex flex-col items-center gap-2 w-full max-w-4xl px-1 select-none">
       {rows.map((row, i) => (
         <div key={i} className="flex gap-1 sm:gap-2 justify-center w-full">
           {row.split('').map(char => (
@@ -211,8 +216,9 @@ const Keyboard = ({ onKey, usedKeys }) => {
           ))}
           {i === 2 && (
              <button
-             // INCREASED SIZE for Backspace
-             className="h-12 sm:h-14 px-3 sm:px-5 ml-1 bg-blue-700 text-white rounded font-bold text-sm sm:text-lg flex items-center hover:bg-blue-600 border-b-4 border-blue-900 active:scale-95 duration-200"
+             // --- MODIFICATION BOUTON RETOUR ---
+             // Plus large et plus haut
+             className="h-16 sm:h-20 px-4 sm:px-8 ml-1 bg-blue-700 text-white rounded-md font-bold text-lg sm:text-2xl flex items-center hover:bg-blue-600 border-b-4 border-blue-900 active:scale-95 duration-200"
              onClick={() => onKey('BACKSPACE')}
            >
              ⌫
@@ -220,8 +226,9 @@ const Keyboard = ({ onKey, usedKeys }) => {
           )}
            {i === 2 && (
              <button
-             // INCREASED SIZE for Enter
-             className="h-12 sm:h-14 px-3 sm:px-5 ml-1 bg-green-600 text-white rounded font-bold text-sm sm:text-lg flex items-center hover:bg-green-500 border-b-4 border-green-800 active:scale-95 duration-200"
+             // --- MODIFICATION BOUTON ENTRER ---
+             // Plus large et plus haut
+             className="h-16 sm:h-20 px-4 sm:px-8 ml-1 bg-green-600 text-white rounded-md font-bold text-lg sm:text-2xl flex items-center hover:bg-green-500 border-b-4 border-green-800 active:scale-95 duration-200"
              onClick={() => onKey('ENTER')}
            >
              ENTRER
@@ -313,9 +320,16 @@ export default function TusmoClone() {
       try {
         const response = await fetch(DICTIONARY_URL);
         if (!response.ok) throw new Error("Erreur réseau");
-        const data = await response.json();
-        const filteredWords = data.filter(w => w.length >= 5 && w.length <= 8).map(normalize);
-        setDictionary([...new Set(filteredWords)]);
+        const text = await response.text();
+        
+        // Parsing d'un fichier texte (mot fréquence) au lieu d'un JSON
+        const data = text.split('\n')
+          .map(line => line.split(' ')[0]) // Prend le premier mot de chaque ligne (ignore la fréquence)
+          .filter(word => word && word.length >= 5 && word.length <= 8) // Filtre taille
+          .filter(word => !word.includes('-') && !word.includes(' ') && !word.includes("'")) // Filtre STRICT: Pas de tiret, espace ou apostrophe
+          .map(normalize);
+
+        setDictionary([...new Set(data)]);
       } catch (err) {
         console.error("Fallback dico", err);
         setDictionary(FALLBACK_WORDS.map(normalize));
