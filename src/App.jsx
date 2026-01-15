@@ -29,9 +29,13 @@ const appId = 'tusmo-game-v1';
 
 // --- DATA & DICTIONARY ---
 
-// Utilisation d'une liste de fréquence pour éviter les mots trop rares ("sarclat")
-// Source : HermitDave Frequency Words (2018)
-const DICTIONARY_URL = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt";
+// 1. URL pour la VALIDATION (Dictionnaire complet ~200k mots)
+// Accepte "manoirs", "jouent", "sarclat"
+const ALL_WORDS_URL = "https://raw.githubusercontent.com/words/an-array-of-french-words/master/index.json";
+
+// 2. URL pour les SOLUTIONS (Fréquence ~10k mots)
+// Seuls les mots courants seront choisis comme devinette
+const COMMON_WORDS_URL = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt";
 
 const FALLBACK_WORDS = [
   "ARBRE", "AVION", "BALLE", "BATON", "BOITE", "BOULE", "BRIQUE", "CADRE", "CHIEN", "CRANE",
@@ -47,10 +51,7 @@ const FALLBACK_WORDS = [
   "TARTE", "TASSE", "TELE", "TENTE", "TERRE", "TIGRE", "TITRE", "TOILE", "TOIT", "TOMATE",
   "TRAIN", "TRONE", "TROU", "TUBE", "TULIPE", "USINE", "VALISE", "VASE", "VELO", "VENT",
   "VERRE", "VESTE", "VIANDE", "VIDEO", "VILLE", "VIOLON", "VITRE", "VOILE", "VOIX", "VOLCAN",
-  "WAGON", "ZEBRE", "ZERO", "ABIMER", "ACHATS", "ADIEUX", "AGNEAU", "AIGLE", "AIMER", "AJOUTE", 
-  "ALBUMS", "ANANAS", "ANIMAL", "ANNEAU", "APPEL", "ARGILE", "ARMURE", "ASTRES", "ATOME", "AVOCAT",
-  "BAGUE", "BAIN", "BAISERS", "BALAI", "BALLON", "BANANE", "BANCS", "BARBE", "BARQUE", "BASSIN", 
-  "BATEAU", "BATON", "BEURRE", "BIDON", "BIJOUX", "BILLET", "BISOU", "BLOUSE", "BOCAL", "BOISSON"
+  "WAGON", "ZEBRE", "ZERO"
 ];
 
 const normalize = (str) => {
@@ -189,10 +190,7 @@ const Keyboard = ({ onKey, usedKeys }) => {
 
   const getKeyStyle = (key) => {
     const status = usedKeys[key];
-    // --- MODIFICATION CLAVIER MOBILE (PLUS GRAND) ---
-    // h-16 (64px) sur mobile, h-20 (80px) sur desktop
-    // w-8 (32px) sur mobile pour tenir 10 touches, w-14 sur desktop
-    // text-xl sur mobile, text-2xl sur desktop
+    // INCREASED SIZE HERE: h-12/14, w-8/11, text-sm/lg
     let style = "h-16 sm:h-20 w-8 sm:w-14 rounded-md font-bold text-xl sm:text-2xl flex items-center justify-center transition-colors shadow-sm select-none cursor-pointer active:scale-95 duration-200 ";
     
     if (status === 'correct') return style + "bg-red-600 text-white border-b-4 border-red-800";
@@ -216,8 +214,7 @@ const Keyboard = ({ onKey, usedKeys }) => {
           ))}
           {i === 2 && (
              <button
-             // --- MODIFICATION BOUTON RETOUR ---
-             // Plus large et plus haut
+             // INCREASED SIZE for Backspace
              className="h-16 sm:h-20 px-4 sm:px-8 ml-1 bg-blue-700 text-white rounded-md font-bold text-lg sm:text-2xl flex items-center hover:bg-blue-600 border-b-4 border-blue-900 active:scale-95 duration-200"
              onClick={() => onKey('BACKSPACE')}
            >
@@ -226,8 +223,7 @@ const Keyboard = ({ onKey, usedKeys }) => {
           )}
            {i === 2 && (
              <button
-             // --- MODIFICATION BOUTON ENTRER ---
-             // Plus large et plus haut
+             // INCREASED SIZE for Enter
              className="h-16 sm:h-20 px-4 sm:px-8 ml-1 bg-green-600 text-white rounded-md font-bold text-lg sm:text-2xl flex items-center hover:bg-green-500 border-b-4 border-green-800 active:scale-95 duration-200"
              onClick={() => onKey('ENTER')}
            >
@@ -267,7 +263,8 @@ const PlayerCard = ({ name, progress, isMe, isWinner, finished }) => {
 // --- MAIN APP ---
 
 export default function TusmoClone() {
-  const [dictionary, setDictionary] = useState([]);
+  const [dictionary, setDictionary] = useState([]); // Pour la VALIDATION (Tout mot)
+  const [solutionDictionary, setSolutionDictionary] = useState([]); // Pour les SOLUTIONS (Mots courants)
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [sessionId] = useState(() => generateSessionId());
@@ -280,12 +277,11 @@ export default function TusmoClone() {
   const [score, setScore] = useState(0);
   const [targetWord, setTargetWord] = useState("");
   const [guesses, setGuesses] = useState([]);
-  const [currentGuess, setCurrentGuess] = useState(""); // Contient maintenant des '.'
+  const [currentGuess, setCurrentGuess] = useState(""); 
   const [gameState, setGameState] = useState('playing'); 
   const [message, setMessage] = useState("");
   const [shake, setShake] = useState(false);
   const [usedKeys, setUsedKeys] = useState({});
-  // NEW: Track input position specifically
   const [inputIndex, setInputIndex] = useState(1);
 
   // Versus Logic
@@ -316,23 +312,38 @@ export default function TusmoClone() {
         onAuthStateChanged(auth, (u) => { if (u) setUser(u); });
       }
 
-      // Dictionnaire
       try {
-        const response = await fetch(DICTIONARY_URL);
-        if (!response.ok) throw new Error("Erreur réseau");
-        const text = await response.text();
-        
-        // Parsing d'un fichier texte (mot fréquence) au lieu d'un JSON
-        const data = text.split('\n')
-          .map(line => line.split(' ')[0]) // Prend le premier mot de chaque ligne (ignore la fréquence)
-          .filter(word => word && word.length >= 5 && word.length <= 8) // Filtre taille
-          .filter(word => !word.includes('-') && !word.includes(' ') && !word.includes("'")) // Filtre STRICT: Pas de tiret, espace ou apostrophe
+        // CHARGEMENT DOUBLE :
+        // 1. Dictionnaire Complet (pour valider "manoirs", "table", etc.)
+        const dictResponse = await fetch(ALL_WORDS_URL);
+        const dictData = await dictResponse.json();
+        const fullDict = dictData
+          .filter(word => word.length >= 5 && word.length <= 8)
           .map(normalize);
+        const uniqueFullDict = [...new Set(fullDict)];
+        setDictionary(uniqueFullDict);
 
-        setDictionary([...new Set(data)]);
+        // 2. Dictionnaire Fréquence (pour choisir les solutions et éviter "sarclat")
+        const freqResponse = await fetch(COMMON_WORDS_URL);
+        const freqText = await freqResponse.text();
+        const freqDict = freqText.split('\n')
+          .map(line => line.split(' ')[0])
+          .filter(word => word && word.length >= 5 && word.length <= 8)
+          .filter(word => !word.includes('-') && !word.includes(' ') && !word.includes("'"))
+          .map(normalize);
+        
+        // On prend les 4000 mots les plus fréquents comme solutions potentielles
+        const uniqueSolutions = [...new Set(freqDict)].slice(0, 4000);
+        
+        // On s'assure que les solutions sont bien valides dans le grand dictionnaire
+        const verifiedSolutions = uniqueSolutions.filter(w => uniqueFullDict.includes(w));
+        setSolutionDictionary(verifiedSolutions);
+
       } catch (err) {
         console.error("Fallback dico", err);
-        setDictionary(FALLBACK_WORDS.map(normalize));
+        const fb = FALLBACK_WORDS.map(normalize);
+        setDictionary(fb);
+        setSolutionDictionary(fb);
       } finally {
         setIsLoading(false);
       }
@@ -363,7 +374,9 @@ export default function TusmoClone() {
 
   const getRandomWords = (count) => {
     const list = [];
-    for(let i=0; i<count; i++) list.push(dictionary[Math.floor(Math.random() * dictionary.length)]);
+    // Utilise le dictionnaire RÉDUIT (fréquent) pour choisir les mots à trouver
+    const source = solutionDictionary.length > 0 ? solutionDictionary : dictionary;
+    for(let i=0; i<count; i++) list.push(source[Math.floor(Math.random() * source.length)]);
     return list;
   };
 
@@ -467,11 +480,13 @@ export default function TusmoClone() {
 
   const loadNextWord = useCallback((resetTotal = false) => {
     if (dictionary.length === 0) return;
-    const newWord = dictionary[Math.floor(Math.random() * dictionary.length)];
+    
+    // Utilise le dictionnaire RÉDUIT pour choisir le mot mystère
+    const source = solutionDictionary.length > 0 ? solutionDictionary : dictionary;
+    const newWord = source[Math.floor(Math.random() * source.length)];
+    
     setTargetWord(newWord);
     setGuesses([]);
-    
-    // Nouveau : on initialise avec le masque (donc 1ere lettre + points)
     setCurrentGuess(getInitialGuessMask(newWord, []));
     setInputIndex(1);
     
@@ -479,7 +494,7 @@ export default function TusmoClone() {
     setMessage("");
     setUsedKeys({});
     if (resetTotal) setScore(0);
-  }, [dictionary]);
+  }, [dictionary, solutionDictionary]);
 
   const goHome = () => {
     setView('menu');
@@ -494,20 +509,15 @@ export default function TusmoClone() {
     if (key === 'ENTER') {
       submitGuess();
     } else if (key === 'BACKSPACE') {
-      // NEW LOGIC: Move back and restore mask char
       if (inputIndex > 1) {
         const newIndex = inputIndex - 1;
         setInputIndex(newIndex);
-        
-        // Restore from mask
         const mask = getInitialGuessMask(targetWord, guesses);
         const chars = currentGuess.split('');
         chars[newIndex] = mask[newIndex];
         setCurrentGuess(chars.join(''));
       }
-
     } else if (/^[A-Z]$/.test(key)) {
-      // NEW LOGIC: Overwrite at cursor position if within bounds
       if (inputIndex < targetWord.length) {
         const chars = currentGuess.split('');
         chars[inputIndex] = key;
@@ -537,6 +547,7 @@ export default function TusmoClone() {
       return;
     }
 
+    // Validation : On vérifie dans le GRAND dictionnaire complet
     if (!dictionary.includes(currentGuess)) {
        showMessage("Pas dans le dictionnaire !");
        triggerShake();
@@ -578,7 +589,7 @@ export default function TusmoClone() {
        }
     } else {
       setCurrentGuess(getInitialGuessMask(targetWord, newGuesses));
-      setInputIndex(1); // Reset cursor for next row
+      setInputIndex(1);
     }
   };
 
