@@ -539,17 +539,18 @@ export default function TusmoClone() {
     const newGuesses = [...guesses, currentGuess];
     setGuesses(newGuesses);
     
+    // REDUCTION DELAI: 1500ms -> 1000ms
     setTimeout(() => {
       updateKeyboardStatus(currentGuess);
-    }, 1500);
+    }, 1000);
 
     if (currentGuess === targetWord) {
       if (view === 'versus-game') {
         showMessage("Correct ! Suivant...");
-        // FIX: Délai de 2s pour laisser l'animation clavier se terminer avant de reset
+        // DELAI SUIVANT: Augmenté à 3s pour laisser l'animation se finir
         setTimeout(() => {
             loadNextVersusWord();
-        }, 2000); 
+        }, 3000); 
       } else {
         setGameState('won');
         if (gameMode === 'sequence') {
@@ -735,6 +736,7 @@ export default function TusmoClone() {
 
   const isVersus = view === 'versus-game';
   const playersList = (isVersus && lobbyData) ? Object.entries(lobbyData.players).map(([sid, p]) => ({sid, ...p})) : [];
+  // FIX: Utilisez le bon ID pour trouver le gagnant
   const winner = (isVersus && lobbyData?.winnerId) ? lobbyData.players[lobbyData.winnerId] : null;
 
   return (
@@ -752,6 +754,12 @@ export default function TusmoClone() {
            <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-red-600 hidden sm:flex items-center justify-center text-white font-bold rounded shadow-sm text-lg border border-red-500">T</div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-blue-100 drop-shadow-md">USMO</h1>
+              {/* DEBUG: Affichage du mot solution */}
+              {targetWord && (
+                <span className="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-300 text-xs font-mono rounded border border-yellow-500/50">
+                  {targetWord}
+                </span>
+              )}
            </div>
         </div>
 
@@ -814,7 +822,8 @@ export default function TusmoClone() {
             {isVersus && winner && (
                <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md animate-in fade-in zoom-in duration-500 rounded-xl">
                   <Trophy className="w-24 h-24 text-yellow-500 mb-6 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
-                  <h2 className="text-4xl font-bold text-white mb-2">{winner.sid === sessionId ? "VICTOIRE !" : "DÉFAITE..."}</h2>
+                  {/* FIX: Utilisez la comparaison d'ID correcte */}
+                  <h2 className="text-4xl font-bold text-white mb-2">{lobbyData.winnerId === sessionId ? "VICTOIRE !" : "DÉFAITE..."}</h2>
                   <p className="text-xl text-blue-200 mb-8">Vainqueur : <span className="font-bold text-yellow-400">{winner.name}</span></p>
                   <button onClick={goHome} className="px-8 py-3 bg-blue-600 rounded-lg hover:bg-blue-500 font-bold transition-colors shadow-lg">
                     Retour Menu
