@@ -755,11 +755,11 @@ export default function TusmoClone() {
               <div className="w-8 h-8 bg-red-600 hidden sm:flex items-center justify-center text-white font-bold rounded shadow-sm text-lg border border-red-500">T</div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-blue-100 drop-shadow-md">USMO</h1>
               {/* DEBUG: Affichage du mot solution */}
-              {targetWord && (
+              {/* {targetWord && (
                 <span className="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-300 text-xs font-mono rounded border border-yellow-500/50">
                   {targetWord}
                 </span>
-              )}
+              )} */}
            </div>
         </div>
 
