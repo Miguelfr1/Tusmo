@@ -30,11 +30,9 @@ const appId = 'tusmo-game-v1';
 // --- DATA & DICTIONARY ---
 
 // 1. URL pour la VALIDATION (Dictionnaire complet ~200k mots)
-// Accepte "manoirs", "jouent", "sarclat"
 const ALL_WORDS_URL = "https://raw.githubusercontent.com/words/an-array-of-french-words/master/index.json";
 
 // 2. URL pour les SOLUTIONS (Fréquence ~10k mots)
-// Seuls les mots courants seront choisis comme devinette
 const COMMON_WORDS_URL = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt";
 
 const FALLBACK_WORDS = [
@@ -75,11 +73,10 @@ const generateSessionId = () => {
 
 // --- LOGIC HELPERS ---
 
-// Construit le masque "M . . S . ." basé sur les lettres rouges déjà trouvées
 const getInitialGuessMask = (target, guesses) => {
   if (!target) return "";
   const mask = Array(target.length).fill('.');
-  mask[0] = target[0]; // La première lettre est toujours donnée
+  mask[0] = target[0]; 
 
   guesses.forEach(guess => {
     guess.split('').forEach((char, i) => {
@@ -98,7 +95,6 @@ const Cell = ({ letter, status, isCurrent, isRevealing, animationDelay }) => {
   let baseStyle = "w-9 h-9 sm:w-11 sm:h-11 md:w-14 md:h-14 border border-blue-400 flex items-center justify-center text-lg sm:text-2xl font-bold uppercase select-none relative overflow-hidden transition-colors duration-200";
   let contentStyle = "w-full h-full flex items-center justify-center relative z-10";
 
-  // Si c'est un point (placeholder), on affiche vide
   const displayChar = letter === '.' ? '' : letter;
 
   if (status === 'correct') {
@@ -109,7 +105,6 @@ const Cell = ({ letter, status, isCurrent, isRevealing, animationDelay }) => {
   } else if (status === 'absent') {
     baseStyle += " bg-blue-900/50 text-blue-300 opacity-80";
   } else {
-    // Empty or Typing
     baseStyle += " bg-blue-900/30 text-white";
     if (isCurrent) baseStyle += " border-b-4 border-b-yellow-400 bg-blue-800/50";
   }
@@ -163,7 +158,6 @@ const Row = ({ word, targetWord, isCompleted, isCurrent, currentGuess, cursorInd
         const char = letters[i]; 
         const displayLetter = char || (i === 0 ? targetWord[0] : '');
         
-        // Souligner la case active (où est le curseur)
         const isCellCurrent = isCurrent && i === cursorIndex;
 
         return (
@@ -190,7 +184,6 @@ const Keyboard = ({ onKey, usedKeys }) => {
 
   const getKeyStyle = (key) => {
     const status = usedKeys[key];
-    // INCREASED SIZE HERE: h-12/14, w-8/11, text-sm/lg
     let style = "h-16 sm:h-20 w-8 sm:w-14 rounded-md font-bold text-xl sm:text-2xl flex items-center justify-center transition-colors shadow-sm select-none cursor-pointer active:scale-95 duration-200 ";
     
     if (status === 'correct') return style + "bg-red-600 text-white border-b-4 border-red-800";
@@ -214,7 +207,6 @@ const Keyboard = ({ onKey, usedKeys }) => {
           ))}
           {i === 2 && (
              <button
-             // INCREASED SIZE for Backspace
              className="h-16 sm:h-20 px-4 sm:px-8 ml-1 bg-blue-700 text-white rounded-md font-bold text-lg sm:text-2xl flex items-center hover:bg-blue-600 border-b-4 border-blue-900 active:scale-95 duration-200"
              onClick={() => onKey('BACKSPACE')}
            >
@@ -223,7 +215,6 @@ const Keyboard = ({ onKey, usedKeys }) => {
           )}
            {i === 2 && (
              <button
-             // INCREASED SIZE for Enter
              className="h-16 sm:h-20 px-4 sm:px-8 ml-1 bg-green-600 text-white rounded-md font-bold text-lg sm:text-2xl flex items-center hover:bg-green-500 border-b-4 border-green-800 active:scale-95 duration-200"
              onClick={() => onKey('ENTER')}
            >
@@ -263,8 +254,8 @@ const PlayerCard = ({ name, progress, isMe, isWinner, finished }) => {
 // --- MAIN APP ---
 
 export default function TusmoClone() {
-  const [dictionary, setDictionary] = useState([]); // Pour la VALIDATION (Tout mot)
-  const [solutionDictionary, setSolutionDictionary] = useState([]); // Pour les SOLUTIONS (Mots courants)
+  const [dictionary, setDictionary] = useState([]);
+  const [solutionDictionary, setSolutionDictionary] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [sessionId] = useState(() => generateSessionId());
@@ -313,8 +304,6 @@ export default function TusmoClone() {
       }
 
       try {
-        // CHARGEMENT DOUBLE :
-        // 1. Dictionnaire Complet (pour valider "manoirs", "table", etc.)
         const dictResponse = await fetch(ALL_WORDS_URL);
         const dictData = await dictResponse.json();
         const fullDict = dictData
@@ -323,7 +312,6 @@ export default function TusmoClone() {
         const uniqueFullDict = [...new Set(fullDict)];
         setDictionary(uniqueFullDict);
 
-        // 2. Dictionnaire Fréquence (pour choisir les solutions et éviter "sarclat")
         const freqResponse = await fetch(COMMON_WORDS_URL);
         const freqText = await freqResponse.text();
         const freqDict = freqText.split('\n')
@@ -332,10 +320,7 @@ export default function TusmoClone() {
           .filter(word => !word.includes('-') && !word.includes(' ') && !word.includes("'"))
           .map(normalize);
         
-        // On prend les 4000 mots les plus fréquents comme solutions potentielles
         const uniqueSolutions = [...new Set(freqDict)].slice(0, 4000);
-        
-        // On s'assure que les solutions sont bien valides dans le grand dictionnaire
         const verifiedSolutions = uniqueSolutions.filter(w => uniqueFullDict.includes(w));
         setSolutionDictionary(verifiedSolutions);
 
@@ -374,7 +359,6 @@ export default function TusmoClone() {
 
   const getRandomWords = (count) => {
     const list = [];
-    // Utilise le dictionnaire RÉDUIT (fréquent) pour choisir les mots à trouver
     const source = solutionDictionary.length > 0 ? solutionDictionary : dictionary;
     for(let i=0; i<count; i++) list.push(source[Math.floor(Math.random() * source.length)]);
     return list;
@@ -481,7 +465,6 @@ export default function TusmoClone() {
   const loadNextWord = useCallback((resetTotal = false) => {
     if (dictionary.length === 0) return;
     
-    // Utilise le dictionnaire RÉDUIT pour choisir le mot mystère
     const source = solutionDictionary.length > 0 ? solutionDictionary : dictionary;
     const newWord = source[Math.floor(Math.random() * source.length)];
     
@@ -547,7 +530,6 @@ export default function TusmoClone() {
       return;
     }
 
-    // Validation : On vérifie dans le GRAND dictionnaire complet
     if (!dictionary.includes(currentGuess)) {
        showMessage("Pas dans le dictionnaire !");
        triggerShake();
@@ -563,7 +545,11 @@ export default function TusmoClone() {
 
     if (currentGuess === targetWord) {
       if (view === 'versus-game') {
-        loadNextVersusWord();
+        showMessage("Correct ! Suivant...");
+        // FIX: Délai de 2s pour laisser l'animation clavier se terminer avant de reset
+        setTimeout(() => {
+            loadNextVersusWord();
+        }, 2000); 
       } else {
         setGameState('won');
         if (gameMode === 'sequence') {
