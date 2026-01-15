@@ -125,7 +125,7 @@ const Cell = ({ letter, status, isCurrent, isRevealing, animationDelay }) => {
   );
 };
 
-const Row = ({ word, targetWord, isCompleted, isCurrent, currentGuess }) => {
+const Row = ({ word, targetWord, isCompleted, isCurrent, currentGuess, cursorIndex }) => {
   const letters = isCurrent ? currentGuess : word;
   
   const getCellStatus = (index, letter) => {
@@ -159,7 +159,9 @@ const Row = ({ word, targetWord, isCompleted, isCurrent, currentGuess }) => {
       {Array.from({ length: targetWord.length }).map((_, i) => {
         const char = letters[i]; 
         const displayLetter = char || (i === 0 ? targetWord[0] : '');
-        const isCellCurrent = isCurrent; 
+        
+        // Souligner la case active (où est le curseur)
+        const isCellCurrent = isCurrent && i === cursorIndex;
 
         return (
           <Cell 
@@ -185,7 +187,8 @@ const Keyboard = ({ onKey, usedKeys }) => {
 
   const getKeyStyle = (key) => {
     const status = usedKeys[key];
-    let style = "h-10 sm:h-12 w-7 sm:w-10 rounded font-bold text-xs sm:text-base flex items-center justify-center transition-colors shadow-sm select-none cursor-pointer active:scale-95 duration-200 ";
+    // INCREASED SIZE HERE: h-12/14, w-8/11, text-sm/lg
+    let style = "h-12 sm:h-14 w-8 sm:w-11 rounded font-bold text-sm sm:text-lg flex items-center justify-center transition-colors shadow-sm select-none cursor-pointer active:scale-95 duration-200 ";
     
     if (status === 'correct') return style + "bg-red-600 text-white border-b-4 border-red-800";
     if (status === 'present') return style + "bg-yellow-400 text-black border-b-4 border-yellow-600";
@@ -194,9 +197,9 @@ const Keyboard = ({ onKey, usedKeys }) => {
   };
 
   return (
-    <div className="mt-4 flex flex-col items-center gap-2 w-full max-w-2xl px-1 select-none">
+    <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-3xl px-2 select-none">
       {rows.map((row, i) => (
-        <div key={i} className="flex gap-1 justify-center w-full">
+        <div key={i} className="flex gap-1 sm:gap-2 justify-center w-full">
           {row.split('').map(char => (
             <button
               key={char}
@@ -208,7 +211,8 @@ const Keyboard = ({ onKey, usedKeys }) => {
           ))}
           {i === 2 && (
              <button
-             className="h-10 sm:h-12 px-2 sm:px-4 ml-1 bg-blue-700 text-white rounded font-bold text-xs sm:text-sm flex items-center hover:bg-blue-600 border-b-4 border-blue-900 active:scale-95 duration-200"
+             // INCREASED SIZE for Backspace
+             className="h-12 sm:h-14 px-3 sm:px-5 ml-1 bg-blue-700 text-white rounded font-bold text-sm sm:text-lg flex items-center hover:bg-blue-600 border-b-4 border-blue-900 active:scale-95 duration-200"
              onClick={() => onKey('BACKSPACE')}
            >
              ⌫
@@ -216,7 +220,8 @@ const Keyboard = ({ onKey, usedKeys }) => {
           )}
            {i === 2 && (
              <button
-             className="h-10 sm:h-12 px-2 sm:px-4 ml-1 bg-green-600 text-white rounded font-bold text-xs sm:text-sm flex items-center hover:bg-green-500 border-b-4 border-green-800 active:scale-95 duration-200"
+             // INCREASED SIZE for Enter
+             className="h-12 sm:h-14 px-3 sm:px-5 ml-1 bg-green-600 text-white rounded font-bold text-sm sm:text-lg flex items-center hover:bg-green-500 border-b-4 border-green-800 active:scale-95 duration-200"
              onClick={() => onKey('ENTER')}
            >
              ENTRER
@@ -273,6 +278,8 @@ export default function TusmoClone() {
   const [message, setMessage] = useState("");
   const [shake, setShake] = useState(false);
   const [usedKeys, setUsedKeys] = useState({});
+  // NEW: Track input position specifically
+  const [inputIndex, setInputIndex] = useState(1);
 
   // Versus Logic
   const [lobbyCode, setLobbyCode] = useState("");
@@ -289,7 +296,6 @@ export default function TusmoClone() {
       
       // Auth Firebase
       if (auth) {
-        // Fix: Add try-catch block for Auth to prevent crash if not configured in console
         if (!auth.currentUser) {
             try {
                 await signInAnonymously(auth);
@@ -404,6 +410,7 @@ export default function TusmoClone() {
     const firstWord = data.wordList[0];
     setTargetWord(firstWord);
     setCurrentGuess(getInitialGuessMask(firstWord, []));
+    setInputIndex(1);
     
     setView('versus-game');
   };
@@ -427,6 +434,7 @@ export default function TusmoClone() {
        setTargetWord(nextWord);
        setGuesses([]);
        setCurrentGuess(getInitialGuessMask(nextWord, []));
+       setInputIndex(1);
        setUsedKeys({});
        showMessage(`Mot ${nextIndex + 1}/5 !`);
     } else {
@@ -451,6 +459,7 @@ export default function TusmoClone() {
     
     // Nouveau : on initialise avec le masque (donc 1ere lettre + points)
     setCurrentGuess(getInitialGuessMask(newWord, []));
+    setInputIndex(1);
     
     setGameState('playing');
     setMessage("");
@@ -471,29 +480,28 @@ export default function TusmoClone() {
     if (key === 'ENTER') {
       submitGuess();
     } else if (key === 'BACKSPACE') {
-      const chars = currentGuess.split('');
-      let lastFilledIndex = -1;
-      for (let i = chars.length - 1; i > 0; i--) {
-        if (chars[i] !== '.') {
-          lastFilledIndex = i;
-          break;
-        }
-      }
-      if (lastFilledIndex > 0) {
-        chars[lastFilledIndex] = '.';
+      // NEW LOGIC: Move back and restore mask char
+      if (inputIndex > 1) {
+        const newIndex = inputIndex - 1;
+        setInputIndex(newIndex);
+        
+        // Restore from mask
+        const mask = getInitialGuessMask(targetWord, guesses);
+        const chars = currentGuess.split('');
+        chars[newIndex] = mask[newIndex];
         setCurrentGuess(chars.join(''));
       }
+
     } else if (/^[A-Z]$/.test(key)) {
-      if (currentGuess.includes('.')) {
+      // NEW LOGIC: Overwrite at cursor position if within bounds
+      if (inputIndex < targetWord.length) {
         const chars = currentGuess.split('');
-        const firstEmptyIndex = chars.indexOf('.');
-        if (firstEmptyIndex !== -1) {
-          chars[firstEmptyIndex] = key;
-          setCurrentGuess(chars.join(''));
-        }
+        chars[inputIndex] = key;
+        setCurrentGuess(chars.join(''));
+        setInputIndex(inputIndex + 1);
       }
     }
-  }, [currentGuess, gameState, targetWord]);
+  }, [currentGuess, gameState, targetWord, inputIndex, guesses]);
 
   useEffect(() => {
     if (!view.includes('game')) return;
@@ -548,6 +556,7 @@ export default function TusmoClone() {
           setTimeout(() => {
              setGuesses([]);
              setCurrentGuess(getInitialGuessMask(targetWord, []));
+             setInputIndex(1);
           }, 2000);
        } else {
           setGameState('lost');
@@ -555,6 +564,7 @@ export default function TusmoClone() {
        }
     } else {
       setCurrentGuess(getInitialGuessMask(targetWord, newGuesses));
+      setInputIndex(1); // Reset cursor for next row
     }
   };
 
@@ -816,6 +826,7 @@ export default function TusmoClone() {
                   isCompleted={false} 
                   isCurrent={true} 
                   currentGuess={currentGuess} 
+                  cursorIndex={inputIndex} // Affichage visuel du curseur si besoin
                 />
               )}
 
