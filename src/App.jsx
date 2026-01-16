@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, Trophy, AlertCircle, Loader2, Play, Layers, Home, Flame, Users, Copy, Check } from 'lucide-react';
+import { RefreshCw, Trophy, AlertCircle, Loader2, Play, Layers, Home, Flame, Users, Copy, Check, XCircle } from 'lucide-react';
 
 // Firebase Imports
 import { initializeApp } from 'firebase/app';
@@ -273,7 +273,7 @@ export default function TusmoClone() {
   const [message, setMessage] = useState("");
   const [shake, setShake] = useState(false);
   const [usedKeys, setUsedKeys] = useState({});
-  const [inputIndex, setInputIndex] = useState(1);
+  const [inputIndex, setInputIndex] = useState(0);
 
   // Versus Logic
   const [lobbyCode, setLobbyCode] = useState("");
@@ -421,7 +421,7 @@ export default function TusmoClone() {
     const firstWord = data.wordList[0];
     setTargetWord(firstWord);
     setCurrentGuess(getInitialGuessMask(firstWord, []));
-    setInputIndex(1);
+    setInputIndex(0); 
     
     setView('versus-game');
   };
@@ -445,7 +445,7 @@ export default function TusmoClone() {
        setTargetWord(nextWord);
        setGuesses([]);
        setCurrentGuess(getInitialGuessMask(nextWord, []));
-       setInputIndex(1);
+       setInputIndex(0); 
        setUsedKeys({});
        showMessage(`Mot ${nextIndex + 1}/5 !`);
     } else {
@@ -471,7 +471,7 @@ export default function TusmoClone() {
     setTargetWord(newWord);
     setGuesses([]);
     setCurrentGuess(getInitialGuessMask(newWord, []));
-    setInputIndex(1);
+    setInputIndex(0); 
     
     setGameState('playing');
     setMessage("");
@@ -492,16 +492,30 @@ export default function TusmoClone() {
     if (key === 'ENTER') {
       submitGuess();
     } else if (key === 'BACKSPACE') {
-      if (inputIndex > 1) {
+      if (inputIndex > 0) {
         const newIndex = inputIndex - 1;
         setInputIndex(newIndex);
-        const mask = getInitialGuessMask(targetWord, guesses);
-        const chars = currentGuess.split('');
-        chars[newIndex] = mask[newIndex];
-        setCurrentGuess(chars.join(''));
+        if (newIndex > 0) {
+            const mask = getInitialGuessMask(targetWord, guesses);
+            const chars = currentGuess.split('');
+            chars[newIndex] = mask[newIndex];
+            setCurrentGuess(chars.join(''));
+        }
       }
     } else if (/^[A-Z]$/.test(key)) {
-      if (inputIndex < targetWord.length) {
+      
+      if (inputIndex === 0) {
+        if (key === targetWord[0]) {
+            setInputIndex(1);
+        } else {
+            if (targetWord.length > 1) {
+                const chars = currentGuess.split('');
+                chars[1] = key;
+                setCurrentGuess(chars.join(''));
+                setInputIndex(2);
+            }
+        }
+      } else if (inputIndex < targetWord.length) {
         const chars = currentGuess.split('');
         chars[inputIndex] = key;
         setCurrentGuess(chars.join(''));
@@ -539,7 +553,6 @@ export default function TusmoClone() {
     const newGuesses = [...guesses, currentGuess];
     setGuesses(newGuesses);
     
-    // REDUCTION DELAI: 1500ms -> 1000ms
     setTimeout(() => {
       updateKeyboardStatus(currentGuess);
     }, 1000);
@@ -547,7 +560,6 @@ export default function TusmoClone() {
     if (currentGuess === targetWord) {
       if (view === 'versus-game') {
         showMessage("Correct ! Suivant...");
-        // DELAI SUIVANT: Augmenté à 3s pour laisser l'animation se finir
         setTimeout(() => {
             loadNextVersusWord();
         }, 3000); 
@@ -568,7 +580,7 @@ export default function TusmoClone() {
           setTimeout(() => {
              setGuesses([]);
              setCurrentGuess(getInitialGuessMask(targetWord, []));
-             setInputIndex(1);
+             setInputIndex(0); 
           }, 2000);
        } else {
           setGameState('lost');
@@ -576,7 +588,7 @@ export default function TusmoClone() {
        }
     } else {
       setCurrentGuess(getInitialGuessMask(targetWord, newGuesses));
-      setInputIndex(1);
+      setInputIndex(0); 
     }
   };
 
@@ -736,7 +748,6 @@ export default function TusmoClone() {
 
   const isVersus = view === 'versus-game';
   const playersList = (isVersus && lobbyData) ? Object.entries(lobbyData.players).map(([sid, p]) => ({sid, ...p})) : [];
-  // FIX: Utilisez le bon ID pour trouver le gagnant
   const winner = (isVersus && lobbyData?.winnerId) ? lobbyData.players[lobbyData.winnerId] : null;
 
   return (
@@ -816,6 +827,31 @@ export default function TusmoClone() {
                 {gameState === 'won' ? <Trophy className="text-yellow-400 shrink-0" /> : <AlertCircle className="text-blue-400 shrink-0" />}
                 <span className="font-bold">{message}</span>
               </div>
+            )}
+
+            {/* NEW: Game Over Modal for Solo/Sequence */}
+            {!isVersus && gameState === 'lost' && (
+               <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md animate-in fade-in zoom-in duration-500 rounded-xl p-6 text-center">
+                  <XCircle className="w-20 h-20 text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />
+                  <h2 className="text-4xl font-bold text-white mb-2">PERDU !</h2>
+                  <p className="text-xl text-blue-200 mb-6">Le mot était : <span className="font-bold text-yellow-400 text-2xl block mt-2">{targetWord}</span></p>
+                  
+                  {gameMode === 'sequence' && (
+                    <div className="bg-slate-800 px-6 py-3 rounded-lg border border-slate-700 mb-8">
+                      <span className="text-slate-400 uppercase text-xs font-bold">Score Final</span>
+                      <div className="text-3xl font-bold text-orange-400">{score}</div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button onClick={goHome} className="px-6 py-3 bg-slate-700 rounded-lg hover:bg-slate-600 font-bold transition-colors">
+                      Menu
+                    </button>
+                    <button onClick={() => loadNextWord(true)} className="px-8 py-3 bg-blue-600 rounded-lg hover:bg-blue-500 font-bold transition-colors shadow-lg flex items-center gap-2">
+                      <RefreshCw className="w-5 h-5" /> Rejouer
+                    </button>
+                  </div>
+               </div>
             )}
 
             {/* Winner Overlay (Versus) */}
