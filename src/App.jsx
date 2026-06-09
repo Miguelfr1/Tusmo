@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, Trophy, AlertCircle, Loader2, Play, Layers, Home, Flame, Users, Copy, Check, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, Trophy, AlertCircle, Loader2, Play, Home, Flame, Users, Copy, XCircle, Sparkles } from 'lucide-react';
+import { POKEMON_GENERATIONS, POKEMON_GENERATION_IDS, getPokemonWordPool } from './data/pokemonByGeneration';
 
 // Firebase Imports
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
   getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, 
-  arrayUnion, collection, increment 
 } from 'firebase/firestore';
 
 // --- FIREBASE SETUP (Ta configuration) ---
@@ -251,6 +251,81 @@ const PlayerCard = ({ name, progress, isMe, isWinner, finished }) => {
   );
 };
 
+const PokemonGenerationPicker = ({ selectedGenerations, onToggleGeneration, onSelectAll, playableCount }) => {
+  const selectedCount = selectedGenerations.length;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="rounded-3xl border border-amber-400/30 bg-slate-950/80 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.45)]">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-amber-300/70">Mode Pokémon</p>
+            <h2 className="mt-2 text-3xl font-black text-white">Choisis tes générations</h2>
+            <p className="mt-2 text-sm text-slate-300">
+              Les mots jouables sont filtrés uniquement sur les Pokémon des générations cochées.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-right">
+            <div className="text-xs uppercase tracking-[0.25em] text-amber-200/70">Pool actif</div>
+            <div className="mt-1 text-2xl font-black text-amber-200">{playableCount}</div>
+            <div className="text-xs text-amber-100/70">noms jouables</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm text-slate-300">
+          {selectedCount} génération{selectedCount > 1 ? 's' : ''} sélectionnée{selectedCount > 1 ? 's' : ''}
+        </div>
+        <button
+          onClick={onSelectAll}
+          className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-amber-400/60 hover:text-white"
+        >
+          Tout sélectionner
+        </button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {POKEMON_GENERATIONS.map((generation) => {
+          const isSelected = selectedGenerations.includes(generation.id);
+
+          return (
+            <button
+              key={generation.id}
+              onClick={() => onToggleGeneration(generation.id)}
+              className={`group rounded-3xl border p-4 text-left transition duration-200 ${
+                isSelected
+                  ? 'border-amber-300 bg-gradient-to-br from-amber-300/20 via-orange-300/10 to-slate-950 text-white shadow-[0_18px_50px_rgba(251,191,36,0.15)]'
+                  : 'border-slate-800 bg-slate-950/90 text-slate-300 hover:border-slate-600 hover:text-white'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.25em] text-slate-400">{generation.label}</div>
+                  <div className="mt-2 text-2xl font-black">{generation.total}</div>
+                  <div className="text-sm text-slate-400">Pokémon au total</div>
+                </div>
+                <div className={`rounded-full border px-3 py-1 text-xs font-bold ${isSelected ? 'border-amber-200/70 bg-amber-300/20 text-amber-100' : 'border-slate-700 text-slate-400'}`}>
+                  {isSelected ? 'Actif' : 'Off'}
+                </div>
+              </div>
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <div className="text-lg font-bold text-slate-100">{generation.playableCount}</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Noms jouables</div>
+                </div>
+                <div className={`text-xs transition ${isSelected ? 'text-amber-100' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                  {generation.pokemonNames.slice(0, 3).join(' • ')}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN APP ---
 
 export default function TusmoClone() {
@@ -263,6 +338,7 @@ export default function TusmoClone() {
   // Navigation
   const [view, setView] = useState('menu'); 
   const [gameMode, setGameMode] = useState('single'); 
+  const [selectedPokemonGenerations, setSelectedPokemonGenerations] = useState(POKEMON_GENERATION_IDS);
 
   // Game Logic
   const [score, setScore] = useState(0);
@@ -281,6 +357,7 @@ export default function TusmoClone() {
   const [versusProgress, setVersusProgress] = useState(0); 
   const [inputCode, setInputCode] = useState("");
   const [playerName, setPlayerName] = useState("");
+  const pokemonWordPool = getPokemonWordPool(selectedPokemonGenerations);
 
   // --- INIT ---
 
@@ -364,6 +441,33 @@ export default function TusmoClone() {
     return list;
   };
 
+  const togglePokemonGeneration = (generationId) => {
+    setSelectedPokemonGenerations((current) => {
+      if (current.includes(generationId)) {
+        return current.length === 1 ? current : current.filter((id) => id !== generationId);
+      }
+      return [...current, generationId].sort((a, b) => a - b);
+    });
+  };
+
+  const selectAllPokemonGenerations = () => {
+    setSelectedPokemonGenerations(POKEMON_GENERATION_IDS);
+  };
+
+  const getWordSource = useCallback((mode = gameMode, generations = selectedPokemonGenerations) => {
+    if (mode === 'pokemon') {
+      return getPokemonWordPool(generations);
+    }
+    return solutionDictionary.length > 0 ? solutionDictionary : dictionary;
+  }, [dictionary, gameMode, selectedPokemonGenerations, solutionDictionary]);
+
+  const getValidationSource = useCallback((mode = gameMode, generations = selectedPokemonGenerations) => {
+    if (mode === 'pokemon') {
+      return getPokemonWordPool(generations);
+    }
+    return dictionary;
+  }, [dictionary, gameMode, selectedPokemonGenerations]);
+
   const createLobby = async () => {
     if (!user || !db) {
         if (!user) showMessage("Erreur: Non connecté (Vérifiez la console Firebase)");
@@ -426,7 +530,7 @@ export default function TusmoClone() {
     setView('versus-game');
   };
 
-  const loadNextVersusWord = async () => {
+  const loadNextVersusWord = useCallback(async () => {
     const nextIndex = versusProgress + 1;
     setVersusProgress(nextIndex);
     
@@ -451,7 +555,7 @@ export default function TusmoClone() {
     } else {
        setGameState('won');
     }
-  };
+  }, [lobbyCode, lobbyData, sessionId, user, versusProgress]);
 
   // --- STANDARD GAME LOGIC ---
 
@@ -459,13 +563,29 @@ export default function TusmoClone() {
     setGameMode(mode);
     setScore(0);
     setView('game');
-    loadNextWord(true);
+    loadNextWord(true, mode);
   };
 
-  const loadNextWord = useCallback((resetTotal = false) => {
-    if (dictionary.length === 0) return;
-    
-    const source = solutionDictionary.length > 0 ? solutionDictionary : dictionary;
+  const startPokemonGame = () => {
+    setView('pokemon-setup');
+  };
+
+  const launchPokemonGame = () => {
+    if (pokemonWordPool.length === 0) {
+      showMessage("Aucun nom jouable pour cette sélection.");
+      return;
+    }
+
+    setGameMode('pokemon');
+    setScore(0);
+    setView('game');
+    loadNextWord(true, 'pokemon', selectedPokemonGenerations);
+  };
+
+  const loadNextWord = useCallback((resetTotal = false, mode = gameMode, generations = selectedPokemonGenerations) => {
+    const source = getWordSource(mode, generations);
+    if (source.length === 0) return;
+
     const newWord = source[Math.floor(Math.random() * source.length)];
     
     setTargetWord(newWord);
@@ -477,7 +597,7 @@ export default function TusmoClone() {
     setMessage("");
     setUsedKeys({});
     if (resetTotal) setScore(0);
-  }, [dictionary, solutionDictionary]);
+  }, [gameMode, getWordSource, selectedPokemonGenerations]);
 
   const goHome = () => {
     setView('menu');
@@ -486,65 +606,31 @@ export default function TusmoClone() {
     setLobbyData(null);
   };
 
-  const handleKey = useCallback((key) => {
-    if (gameState !== 'playing') return;
+  const updateKeyboardStatus = useCallback((guess) => {
+    const newKeys = { ...usedKeys };
+    const targetArr = targetWord.split('');
+    
+    guess.split('').forEach((letter, i) => {
+      const currentStatus = newKeys[letter];
+      let newStatus = 'absent';
+      if (targetArr[i] === letter) newStatus = 'correct';
+      else if (targetArr.includes(letter)) newStatus = 'present';
+      if (currentStatus === 'correct') return;
+      if (currentStatus === 'present' && newStatus !== 'correct') return;
+      newKeys[letter] = newStatus;
+    });
+    setUsedKeys(newKeys);
+  }, [targetWord, usedKeys]);
 
-    if (key === 'ENTER') {
-      submitGuess();
-    } else if (key === 'BACKSPACE') {
-      if (inputIndex > 0) {
-        const newIndex = inputIndex - 1;
-        setInputIndex(newIndex);
-        if (newIndex > 0) {
-            const mask = getInitialGuessMask(targetWord, guesses);
-            const chars = currentGuess.split('');
-            chars[newIndex] = mask[newIndex];
-            setCurrentGuess(chars.join(''));
-        }
-      }
-    } else if (/^[A-Z]$/.test(key)) {
-      
-      if (inputIndex === 0) {
-        if (key === targetWord[0]) {
-            setInputIndex(1);
-        } else {
-            if (targetWord.length > 1) {
-                const chars = currentGuess.split('');
-                chars[1] = key;
-                setCurrentGuess(chars.join(''));
-                setInputIndex(2);
-            }
-        }
-      } else if (inputIndex < targetWord.length) {
-        const chars = currentGuess.split('');
-        chars[inputIndex] = key;
-        setCurrentGuess(chars.join(''));
-        setInputIndex(inputIndex + 1);
-      }
-    }
-  }, [currentGuess, gameState, targetWord, inputIndex, guesses]);
-
-  useEffect(() => {
-    if (!view.includes('game')) return;
-    const listener = (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const key = e.key.toUpperCase();
-      if (key === 'ENTER' || key === 'BACKSPACE' || /^[A-Z]$/.test(key)) {
-        handleKey(key);
-      }
-    };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
-  }, [handleKey, view]);
-
-  const submitGuess = () => {
+  const submitGuess = useCallback(() => {
     if (currentGuess.includes('.')) {
       showMessage("Mot incomplet !");
       triggerShake();
       return;
     }
 
-    if (!dictionary.includes(currentGuess)) {
+    const validationSource = getValidationSource();
+    if (!validationSource.includes(currentGuess)) {
        showMessage("Pas dans le dictionnaire !");
        triggerShake();
        return;
@@ -590,23 +676,7 @@ export default function TusmoClone() {
       setCurrentGuess(getInitialGuessMask(targetWord, newGuesses));
       setInputIndex(0); 
     }
-  };
-
-  const updateKeyboardStatus = (guess) => {
-    const newKeys = { ...usedKeys };
-    const targetArr = targetWord.split('');
-    
-    guess.split('').forEach((letter, i) => {
-      const currentStatus = newKeys[letter];
-      let newStatus = 'absent';
-      if (targetArr[i] === letter) newStatus = 'correct';
-      else if (targetArr.includes(letter)) newStatus = 'present';
-      if (currentStatus === 'correct') return;
-      if (currentStatus === 'present' && newStatus !== 'correct') return;
-      newKeys[letter] = newStatus;
-    });
-    setUsedKeys(newKeys);
-  };
+  }, [currentGuess, gameMode, getValidationSource, guesses, loadNextVersusWord, loadNextWord, score, targetWord, updateKeyboardStatus, view]);
 
   const showMessage = (msg) => {
     setMessage(msg);
@@ -617,6 +687,54 @@ export default function TusmoClone() {
     setShake(true);
     setTimeout(() => setShake(false), 500);
   };
+
+  const handleKey = useCallback((key) => {
+    if (gameState !== 'playing') return;
+
+    if (key === 'ENTER') {
+      submitGuess();
+    } else if (key === 'BACKSPACE') {
+      if (inputIndex > 0) {
+        const newIndex = inputIndex - 1;
+        setInputIndex(newIndex);
+        if (newIndex > 0) {
+          const mask = getInitialGuessMask(targetWord, guesses);
+          const chars = currentGuess.split('');
+          chars[newIndex] = mask[newIndex];
+          setCurrentGuess(chars.join(''));
+        }
+      }
+    } else if (/^[A-Z]$/.test(key)) {
+      if (inputIndex === 0) {
+        if (key === targetWord[0]) {
+          setInputIndex(1);
+        } else if (targetWord.length > 1) {
+          const chars = currentGuess.split('');
+          chars[1] = key;
+          setCurrentGuess(chars.join(''));
+          setInputIndex(2);
+        }
+      } else if (inputIndex < targetWord.length) {
+        const chars = currentGuess.split('');
+        chars[inputIndex] = key;
+        setCurrentGuess(chars.join(''));
+        setInputIndex(inputIndex + 1);
+      }
+    }
+  }, [currentGuess, gameState, guesses, inputIndex, submitGuess, targetWord]);
+
+  useEffect(() => {
+    if (!view.includes('game')) return;
+    const listener = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const key = e.key.toUpperCase();
+      if (key === 'ENTER' || key === 'BACKSPACE' || /^[A-Z]$/.test(key)) {
+        handleKey(key);
+      }
+    };
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, [handleKey, view]);
 
   // --- RENDER HELPERS ---
 
@@ -639,7 +757,7 @@ export default function TusmoClone() {
                <span>Chargement...</span>
              </div>
           ) : (
-            <div className="flex flex-col gap-4 w-72">
+            <div className="flex flex-col gap-4 w-80">
               <button onClick={() => startSingleGame('single')} className="flex items-center gap-4 bg-blue-800 hover:bg-blue-700 p-4 rounded-xl shadow-lg transition-all hover:scale-105 group border border-blue-600">
                 <div className="bg-blue-900 p-2 rounded-lg group-hover:bg-blue-600 transition-colors"><Play className="w-6 h-6 text-white" /></div>
                 <div className="flex flex-col items-start"><span className="font-bold text-lg">Solo Rapide</span></div>
@@ -654,8 +772,55 @@ export default function TusmoClone() {
                 <div className="bg-green-900 p-2 rounded-lg group-hover:bg-green-600 transition-colors"><Users className="w-6 h-6 text-white" /></div>
                 <div className="flex flex-col items-start"><span className="font-bold text-lg">Versus en Ligne (Beta)</span><span className="text-xs text-green-300">Course à 5 joueurs</span></div>
               </button>
+
+              <button onClick={startPokemonGame} className="flex items-center gap-4 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 p-4 rounded-xl shadow-lg transition-all hover:scale-105 group border border-amber-200/40 text-slate-950">
+                <div className="bg-white/15 p-2 rounded-lg backdrop-blur-sm"><Sparkles className="w-6 h-6" /></div>
+                <div className="flex flex-col items-start">
+                  <span className="font-black text-lg">Mode Pokémon</span>
+                  <span className="text-xs font-semibold text-slate-900/75">Générations filtrables</span>
+                </div>
+              </button>
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'pokemon-setup') {
+    return (
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#172554_0%,#020617_55%,#000000_100%)] text-white px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+          <div className="flex items-center justify-between gap-4">
+            <button onClick={goHome} className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-amber-400/60 hover:text-white">
+              <Home className="h-4 w-4" /> Retour menu
+            </button>
+            <div className="rounded-full border border-amber-300/30 bg-amber-200/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.3em] text-amber-200">
+              {POKEMON_GENERATIONS.reduce((total, generation) => total + generation.total, 0)} Pokémon recensés
+            </div>
+          </div>
+
+          <PokemonGenerationPicker
+            selectedGenerations={selectedPokemonGenerations}
+            onToggleGeneration={togglePokemonGeneration}
+            onSelectAll={selectAllPokemonGenerations}
+            playableCount={pokemonWordPool.length}
+          />
+
+          <div className="flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-950/85 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-lg font-bold text-white">Sélection active</div>
+              <div className="mt-1 text-sm text-slate-400">
+                Les parties utiliseront uniquement les noms Pokémon de 5 à 8 lettres compatibles avec la grille actuelle.
+              </div>
+            </div>
+            <button
+              onClick={launchPokemonGame}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 px-6 py-4 text-base font-black text-slate-950 shadow-[0_18px_50px_rgba(249,115,22,0.35)] transition hover:scale-[1.02]"
+            >
+              Lancer la chasse <Play className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -779,6 +944,14 @@ export default function TusmoClone() {
             <div className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-purple-500/50 shadow-inner">
               <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
               <span className="font-bold text-white">Score: {score}</span>
+            </div>
+          )}
+          {gameMode === 'pokemon' && !isVersus && (
+            <div className="flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 shadow-inner">
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span className="font-bold text-amber-100">
+                Pokémon · Gen {selectedPokemonGenerations.join(', ')}
+              </span>
             </div>
           )}
           {isVersus && (
