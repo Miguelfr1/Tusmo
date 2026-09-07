@@ -147,7 +147,7 @@ export default function PokemonHint({
           <p className="hint-help" role="status">
             {coins < costs[step]
               ? `Il te manque ${costs[step] - coins} pièces. Gagne une partie sans indice pour en obtenir.`
-              : `Solde : ${coins} pièces. Aucun essai retiré.`}
+              : `Solde : ${coins} pièces. Aucun essai retiré, mais ce prix sera aussi déduit de ta récompense.`}
           </p>
         )}
       </div>

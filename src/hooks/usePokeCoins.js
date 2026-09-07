@@ -120,7 +120,12 @@ export default function usePokeCoins() {
       settledRounds.current.add(roundId);
       const current = walletRef.current;
       const nextStreak = current.streak + 1;
-      const reward = calculateWinReward({ attempts, hintsUsed: context?.mode === 'silhouette' ? Math.max(1, hintsUsed) : hintsUsed, nextStreak });
+      const reward = calculateWinReward({
+        attempts,
+        hintsUsed,
+        nextStreak,
+        masteryEligible: context?.mode !== "silhouette",
+      });
       let adventure = current.adventure;
       if (context?.pokemon) {
         adventure = recordResult(adventure, roundId, {

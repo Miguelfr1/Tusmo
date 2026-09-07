@@ -409,11 +409,13 @@ export function Victory({
   const [failed, setFailed] = useState(null);
   const [shareFeedback, setShareFeedback] = useState("");
   const shownCard = card || collectedCard;
-  // Only show the card once loaded; fall back to official artwork when fetch is done and empty
+  // Une seule image : la carte. L illustration officielle n arrive qu en
+  // dernier recours, une fois la recherche terminée, pour éviter deux
+  // apparitions successives sur une connexion lente.
   const illustration =
     shownCard && failed !== shownCard.image
       ? shownCard
-      : entry
+      : entry && !cardLoading
         ? {
             name: entry.name,
             image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${entry.id}.png`,
@@ -542,6 +544,11 @@ export function Victory({
                 {reward.streak > 0 && (
                   <span>
                     Série <b>+{reward.streak}</b>
+                  </span>
+                )}
+                {reward.hints < 0 && (
+                  <span className="reward-cost">
+                    Indices <b>{reward.hints}</b>
                   </span>
                 )}
                 {!!reward.special && (

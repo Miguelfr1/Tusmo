@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   RefreshCw,
   Trophy,
@@ -355,8 +355,10 @@ export default function TusmoClone() {
         });
         if (!dictResponse.ok) throw new Error("Dictionnaire indisponible");
         const dictData = await dictResponse.json();
+        // 3 à 14 lettres : les noms de Pokémon couvrent toute cette plage et
+        // les mots français servent de tentatives d exploration.
         const fullDict = dictData
-          .filter((word) => word.length >= 5 && word.length <= 8)
+          .filter((word) => word.length >= 3 && word.length <= 14)
           .map(normalize);
         const uniqueFullDict = [...new Set(fullDict)];
         setDictionary(uniqueFullDict);
@@ -517,13 +519,20 @@ export default function TusmoClone() {
     [dictionary, gameMode, selectedPokemonGenerations, solutionDictionary],
   );
 
-  const getValidationSource = useCallback(
-    (mode = gameMode, generations = selectedPokemonGenerations) => {
-      if (mode === "pokemon") {
-        return getPokemonWordPool(generations);
-      }
-      return dictionary;
-    },
+  // En mode Pokémon, certains couples première lettre + longueur n ont qu un
+  // seul nom possible : sans mots français, aucune tentative d exploration
+  // n est jouable. Les mots ordinaires sont donc acceptés, la solution reste
+  // un Pokémon.
+  const validationSource = useMemo(
+    () =>
+      new Set(
+        gameMode === "pokemon"
+          ? [
+              ...getPokemonWordPool(selectedPokemonGenerations),
+              ...dictionary,
+            ]
+          : dictionary,
+      ),
     [dictionary, gameMode, selectedPokemonGenerations],
   );
 
@@ -945,9 +954,12 @@ export default function TusmoClone() {
       return;
     }
 
-    const validationSource = getValidationSource();
-    if (!validationSource.includes(currentGuess)) {
-      showMessage("Pas dans le dictionnaire !");
+    if (!validationSource.has(currentGuess)) {
+      showMessage(
+        gameMode === "pokemon"
+          ? "Nom de Pokémon ou mot français inconnu."
+          : "Pas dans le dictionnaire !",
+      );
       triggerShake();
       return;
     }
@@ -997,7 +1009,7 @@ export default function TusmoClone() {
   }, [
     currentGuess,
     gameMode,
-    getValidationSource,
+    validationSource,
     guesses,
     loadNextVersusWord,
     score,
@@ -1513,6 +1525,12 @@ export default function TusmoClone() {
               {targetWord.length} caractères · Essai{" "}
               {Math.min(guesses.length + 1, 6)} sur 6
             </p>
+            {gameMode === "pokemon" && (
+              <p className="game-intro-tip">
+                Les mots français sont acceptés pour explorer les lettres. La
+                solution, elle, reste un Pokémon.
+              </p>
+            )}
             {gameMode === "pokemon" && adventureMode !== "classic" && (
               <p className="challenge-game-label">
                 {adventureMode === "daily"

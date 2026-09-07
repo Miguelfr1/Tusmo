@@ -79,6 +79,10 @@ export default function WalletDialog({ coins, close }) {
             <dd>+15</dd>
           </div>
           <div>
+            <dt>Indices achetés</dt>
+            <dd>leur prix retiré du gain</dd>
+          </div>
+          <div>
             <dt>Série · dès la 2e victoire</dt>
             <dd>+2 par palier, max. +20</dd>
           </div>
@@ -102,7 +106,9 @@ export default function WalletDialog({ coins, close }) {
           )}
         </div>
         <p className="wallet-note">
-          Les indices s'achètent dans cet ordre, sans retirer d'essai. Une
+          Les indices s'achètent dans cet ordre, sans retirer d'essai. Leur
+          prix est aussi déduit de la récompense de fin de partie : une victoire
+          assistée reste gagnante, jamais rentable. Une
           défaite ou un abandon termine la série. Les pièces restent sur ce
           navigateur, sans achat en argent réel.
           {' '}Le mode silhouette ne donne pas le bonus sans indice. Tu peux aussi dépenser tes pièces dans le carnet : booster de 3 illustrations à 120 pièces, cosmétiques de 180 à 300 pièces. Les défis quotidien et champion peuvent être mis en pause.

@@ -480,3 +480,22 @@
     font-size: 10px;
   }
 }
+
+/* Une tentative d exploration en mots français est possible : le rappel reste
+   discret sous le compteur d essais. */
+.game-intro-tip {
+  max-width: 340px;
+  margin: 6px auto 0;
+  color: #8b9880;
+  font-size: 10px;
+  line-height: 1.5;
+}
+/* La ligne des indices est une dépense : elle se distingue des gains. */
+.reward-breakdown .reward-cost {
+  background: #fdf1ea;
+  border-color: #eccdb8;
+  color: #8a5a3c;
+}
+.reward-breakdown .reward-cost b {
+  color: #b4522a;
+}
