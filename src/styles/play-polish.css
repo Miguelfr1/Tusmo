@@ -1,0 +1,482 @@
+/* Interaction and accessibility refinements shared by desktop and mobile. */
+.coin-badge {
+  cursor: pointer;
+  min-height: 44px;
+}
+.coin-badge:hover {
+  background: #fff1b2;
+  transform: translateY(-1px);
+}
+.wallet-dialog {
+  position: fixed;
+  margin: auto;
+  width: 460px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  border: 1px solid #e4d198;
+  border-radius: 24px;
+  background: #fffdf2;
+  color: #193d36;
+  box-shadow: 0 25px 90px #132d3650;
+  padding: 0;
+  text-align: left;
+}
+.wallet-dialog::backdrop {
+  background: #16372abf;
+  backdrop-filter: blur(6px);
+}
+.wallet-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  border-radius: 50%;
+}
+.wallet-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: radial-gradient(ellipse at top, #fff0a2, #f9f2db);
+  padding: 30px 20px 22px;
+  border-bottom: 1px solid #e7d99d;
+}
+.wallet-hero > .coin-symbol {
+  width: 46px;
+  height: 46px;
+  font-size: 25px;
+  margin-bottom: 20px;
+}
+.wallet-hero h2 {
+  font:
+    900 27px Nunito,
+    sans-serif;
+  margin: 8px 0 0;
+}
+.wallet-total {
+  font:
+    1000 55px Nunito,
+    sans-serif;
+  color: #8b5510;
+  font-variant-numeric: tabular-nums;
+}
+.wallet-hero p {
+  color: #675f46;
+  font-size: 12px;
+}
+.wallet-body {
+  padding: 22px 26px;
+}
+.wallet-daily {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid #d2deb9;
+  background: #edf3e1;
+  border-radius: 12px;
+}
+.wallet-daily strong,
+.wallet-daily span {
+  display: block;
+  font-size: 12px;
+}
+.wallet-daily span {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #4f6444;
+}
+.wallet-body h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font:
+    900 17px Nunito,
+    sans-serif;
+  margin: 24px 0 12px;
+}
+.wallet-rates > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #e6e9dc;
+  font-size: 12px;
+}
+.wallet-rates dd {
+  font-weight: 700;
+  color: #805314;
+  white-space: nowrap;
+}
+.wallet-prices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.wallet-prices > div {
+  background: #faf0d2;
+  padding: 13px 7px;
+  border-radius: 10px;
+  text-align: center;
+}
+.wallet-prices span {
+  display: block;
+  font-size: 11px;
+}
+.wallet-prices strong {
+  display: block;
+  margin-top: 5px;
+  font:
+    900 22px Nunito,
+    sans-serif;
+  color: #805314;
+}
+.wallet-prices small {
+  font:
+    10px Inter,
+    sans-serif;
+}
+.wallet-note {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #596b50;
+  margin-top: 17px;
+}
+.leave-dialog .eyebrow {
+  color: #955018;
+}
+.leave-dialog > button {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin-top: 15px;
+  min-height: 44px;
+}
+.hint-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: #eef3e2;
+  border: 1px solid #c6d4b5;
+  border-radius: 12px;
+  color: #33562b;
+}
+.hint-toggle > span {
+  flex: 1;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+}
+.hint-toggle small {
+  margin-left: 6px;
+  color: #5a6c48;
+  font-weight: 500;
+}
+.hint-toggle > svg:last-child {
+  transition: transform 0.2s;
+}
+.hint-toggle[aria-expanded="true"] > svg:last-child {
+  transform: rotate(180deg);
+}
+.hint-panel {
+  padding-top: 12px;
+}
+.hint-panel[hidden] {
+  display: none;
+}
+.hint-help {
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+  color: #526647;
+  margin: 9px 0 0;
+}
+.hint-button {
+  min-height: 44px;
+  font-size: 13px;
+}
+.hint-button span {
+  font-size: 12px;
+}
+.hint-reveal {
+  margin-bottom: 10px;
+}
+.game-page:has(.hint-toggle[aria-expanded="true"]) .pokemon-hint {
+  margin-bottom: 16px;
+}
+.cell-state-icon {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  z-index: 11;
+  line-height: 0;
+}
+.cell-state-icon svg {
+  width: 9px;
+  height: 9px;
+  stroke-width: 3;
+}
+.grid-legend {
+  font-size: 11px;
+  color: #4e6543;
+}
+.grid-legend span:first-child svg {
+  color: #b94b23;
+}
+.grid-legend span:nth-child(2) svg {
+  color: #8b6500;
+}
+.game-intro p {
+  font-size: 12px;
+  color: #526b46;
+}
+.game-intro .eyebrow {
+  color: #536b48;
+}
+.reward-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  color: #425b3b;
+}
+.coin-reward {
+  animation: coins-arrive 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.coin-reward-head > .coin-symbol {
+  animation: coin-turn 0.8s ease-out;
+}
+.reward-breakdown span {
+  font-size: 10px;
+}
+.reward-details span {
+  font-size: 12px;
+}
+.reward-details small {
+  font-size: 11px;
+  color: #536746;
+}
+.hint-result {
+  font-size: 11px;
+}
+.mode-card p {
+  font-size: 12px;
+  color: #4b6143;
+}
+.mode-bottom {
+  font-size: 11px;
+}
+.launch-bar p,
+.launch-bar small {
+  font-size: 12px;
+  color: #526647;
+}
+.generation-card > span:not(.eyebrow):not(.generation-check) {
+  font-size: 12px;
+  color: #536749;
+}
+@keyframes coins-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes coin-turn {
+  from {
+    transform: rotateY(180deg) scale(0.6);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (max-width: 640px) {
+  .game-page {
+    overflow: visible;
+    min-height: 100dvh;
+  }
+  .game-page > header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 9px 12px;
+    gap: 8px;
+  }
+  .game-page > header > div {
+    gap: 8px;
+  }
+  .game-page > header button {
+    min-height: 40px;
+  }
+  .game-page > header .coin-badge {
+    min-height: 40px;
+    padding: 6px 9px;
+  }
+  .game-page > header .coin-badge strong {
+    font-size: 13px;
+  }
+  .game-page > header .border-amber-400\/40 {
+    display: none;
+  }
+  .game-page > main {
+    padding: 14px 12px calc(173px + env(safe-area-inset-bottom));
+  }
+  .game-page:has(.has-numbers) > main {
+    padding-bottom: calc(220px + env(safe-area-inset-bottom));
+  }
+  .game-keyboard {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 25;
+    margin: 0;
+    padding: 10px 9px calc(10px + env(safe-area-inset-bottom));
+    max-width: none;
+    background: #f4f7eefa;
+    border-top: 1px solid #cdd9bf;
+    box-shadow: 0 -4px 20px #28401b0a;
+    gap: 4px;
+  }
+  .game-keyboard > div {
+    gap: 4px;
+  }
+  .game-keyboard button {
+    max-width: none;
+    height: 43px;
+    font-size: 14px;
+  }
+  .game-keyboard button:last-child.bg-green-600 {
+    max-width: none;
+  }
+  .game-intro {
+    margin-bottom: 12px;
+  }
+  .game-intro h2 {
+    font-size: 24px;
+    margin-top: 5px;
+  }
+  .pokemon-hint {
+    margin: 0 0 12px;
+  }
+  .hint-panel {
+    max-height: min(190px, 30dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .hint-reveal strong {
+    font-size: 15px;
+  }
+  .hint-chip {
+    font-size: 12px;
+  }
+  .hint-button span {
+    font-size: 11px;
+  }
+  .word-grid {
+    padding: 10px;
+    gap: 5px;
+  }
+  .game-cell {
+    width: clamp(15px, calc((100vw - 72px) / var(--word-length) - 6px), 40px);
+    font-size: clamp(
+      10px,
+      calc((100vw - 80px) / var(--word-length) * 0.46),
+      21px
+    );
+  }
+  .grid-legend {
+    margin-top: 18px;
+    gap: 14px;
+  }
+  .game-page .daily-reward {
+    bottom: calc(220px + env(safe-area-inset-bottom));
+  }
+  .wallet-body {
+    padding: 18px 20px;
+  }
+  .wallet-hero {
+    padding: 24px 16px 16px;
+  }
+  .wallet-rates > div {
+    font-size: 11px;
+  }
+  .reward-stage {
+    min-height: 245px;
+  }
+  .reward-card {
+    width: 140px;
+  }
+  .reward-caption {
+    font-size: 9px;
+  }
+  .victory-copy {
+    padding: 20px 24px;
+  }
+  .site-nav {
+    gap: 10px;
+  }
+  .site-nav nav button {
+    font-size: 11px;
+  }
+  .site-nav > .coin-badge {
+    min-width: 66px;
+  }
+  .site-nav .brand {
+    font-size: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coin-reward,
+  .coin-reward-head > .coin-symbol {
+    animation: none;
+  }
+  .hint-toggle > svg:last-child {
+    transition: none;
+  }
+}
+@media (max-width: 640px) and (max-height: 740px) {
+  .game-page > main {
+    padding-top: 8px;
+  }
+  .game-intro {
+    margin-bottom: 8px;
+  }
+  .game-intro h2 {
+    font-size: 21px;
+    margin: 3px 0;
+  }
+  .game-intro .eyebrow {
+    font-size: 9px;
+  }
+  .pokemon-hint {
+    margin-bottom: 8px;
+  }
+  .hint-toggle {
+    min-height: 40px;
+  }
+  .game-cell {
+    width: clamp(15px, calc((100vw - 72px) / var(--word-length) - 6px), 34px);
+  }
+  .word-grid {
+    gap: 4px;
+  }
+  .grid-legend {
+    margin-top: 12px;
+    font-size: 10px;
+  }
+}

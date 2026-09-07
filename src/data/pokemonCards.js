@@ -66,6 +66,9 @@ async function fetchPokemonCard(pokemon, signal) {
     .sort((a, b) => cardArtScore(b) - cardArtScore(a))[0];
   if (!best) return null;
   return {
+    id: best.id,
+    pokemonId: pokemon.id,
+    rarity: best.rarity || 'Carte Pokémon',
     name: best.name,
     artist: best.illustrator,
     image: `${best.image}/high.webp`,
@@ -74,12 +77,15 @@ async function fetchPokemonCard(pokemon, signal) {
   };
 }
 
-export async function getPokemonCard(pokemon, signal) {
+export async function getPokemonCard(pokemon) {
   if (cache.has(pokemon.id)) return cache.get(pokemon.id);
-  const request = fetchPokemonCard(pokemon, signal);
+  // Shared requests survive a dialog closing or React remounting it.
+  const request = fetchPokemonCard(pokemon, AbortSignal.timeout(10000));
   cache.set(pokemon.id, request);
   try {
-    return await request;
+    const card = await request;
+    if (!card) cache.delete(pokemon.id);
+    return card;
   } catch (error) {
     cache.delete(pokemon.id);
     throw error;

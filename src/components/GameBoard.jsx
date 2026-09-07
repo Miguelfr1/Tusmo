@@ -1,4 +1,12 @@
-import { Trophy } from "lucide-react";
+import { Trophy, Check, MoveHorizontal, Minus } from "lucide-react";
+
+const statusLabels = {
+  correct: "bien placé",
+  present: "mal placé",
+  absent: "absent",
+  empty: "case vide",
+  typing: "en cours de saisie",
+};
 
 function Cell({ letter, status, isCurrent, isRevealing, animationDelay }) {
   let baseStyle =
@@ -28,8 +36,26 @@ function Cell({ letter, status, isCurrent, isRevealing, animationDelay }) {
       }
     : undefined;
   return (
-    <div className={baseStyle} style={style}>
-      <div className={contentStyle}>{displayChar}</div>
+    <div
+      className={baseStyle}
+      style={style}
+      role="img"
+      aria-label={`${displayChar || "Case"} : ${statusLabels[status]}`}
+    >
+      <div className={contentStyle} aria-hidden="true">
+        {displayChar}
+      </div>
+      {["correct", "present", "absent"].includes(status) && (
+        <span className="cell-state-icon" aria-hidden="true">
+          {status === "correct" ? (
+            <Check />
+          ) : status === "present" ? (
+            <MoveHorizontal />
+          ) : (
+            <Minus />
+          )}
+        </span>
+      )}
     </div>
   );
 }
@@ -151,13 +177,18 @@ export function Keyboard({ onKey, usedKeys, numeric }) {
     );
   };
   return (
-    <div className="game-keyboard mt-4 flex flex-col items-center gap-2 w-full max-w-4xl px-1 select-none">
+    <div
+      className={`game-keyboard ${numeric ? "has-numbers" : ""} mt-4 flex flex-col items-center gap-2 w-full max-w-4xl px-1 select-none`}
+      role="group"
+      aria-label="Clavier de jeu"
+    >
       {rows.map((row, index) => (
         <div key={row} className="flex gap-1 sm:gap-2 justify-center w-full">
           {row.split("").map((key) => (
             <button
               key={key}
               className={keyStyle(key)}
+              aria-label={`${key}${usedKeys[key] ? ` : ${statusLabels[usedKeys[key]]}` : ""}`}
               onClick={() => onKey(key)}
             >
               {key}

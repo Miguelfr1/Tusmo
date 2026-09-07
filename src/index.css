@@ -1659,6 +1659,236 @@ button:active {
   font-weight: 400;
   color: #687b5c;
 }
+.hint-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+.mini-coin,
+.coin-symbol {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 28%,
+    #fff7a6 0 12%,
+    #f9ce43 13% 55%,
+    #d99a17 56% 100%
+  );
+  border: 1px solid #bd8110;
+  box-shadow:
+    inset 0 0 0 2px #ffe873,
+    0 2px 0 #a96d0d;
+  color: #81520b;
+  font:
+    900 10px Nunito,
+    sans-serif;
+  font-style: normal;
+}
+.coin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  color: var(--ink);
+  background: #fffbed;
+  border: 1px solid #e6d28e;
+  border-radius: 999px;
+  padding: 8px 12px 8px 8px;
+  box-shadow: 0 3px 0 #d6bd65;
+}
+.coin-badge strong {
+  font:
+    900 13px Nunito,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.coin-label {
+  font-size: 8px;
+  color: #7a704e;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+.coin-badge.is-compact .coin-symbol {
+  width: 22px;
+  height: 22px;
+}
+.coin-badge.is-compact .coin-label {
+  display: none;
+}
+.daily-reward {
+  position: fixed;
+  z-index: 100;
+  right: 22px;
+  top: 104px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 270px;
+  padding: 13px;
+  background: #fff9de;
+  border: 1px solid #e4c96d;
+  border-radius: 16px;
+  color: var(--ink);
+  box-shadow:
+    0 14px 45px #3f4e2430,
+    0 4px 0 #d6ad35;
+  animation: daily-pop 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.daily-gift {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #9b610b;
+  background: linear-gradient(145deg, #ffe970, #f3ba2c);
+}
+.daily-reward div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.daily-reward small {
+  font-size: 7px;
+  letter-spacing: 1.3px;
+  font-weight: 800;
+}
+.daily-reward strong {
+  font:
+    900 16px Nunito,
+    sans-serif;
+}
+.daily-reward div span {
+  font-size: 9px;
+  color: #786e4f;
+}
+.daily-reward button {
+  align-self: flex-start;
+  color: #85774b;
+  padding: 4px;
+}
+.coin-reward {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid #e6d28a;
+  background: linear-gradient(145deg, #fffbed, #fff4c4);
+  border-radius: 15px;
+}
+.economy-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 13px;
+  color: #716744;
+  font-size: 9px;
+  line-height: 1.55;
+}
+.economy-note .coin-symbol {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+}
+.economy-note span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+.economy-note b {
+  color: #8f5d11;
+  font-size: 10px;
+}
+.coin-reward-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.coin-reward-head > .coin-symbol {
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+}
+.coin-reward-head > div {
+  flex: 1;
+}
+.coin-reward-head small,
+.coin-reward-head strong {
+  display: block;
+}
+.coin-reward-head small {
+  font-size: 7px;
+  letter-spacing: 1.2px;
+}
+.coin-reward-head strong {
+  font:
+    900 17px Nunito,
+    sans-serif;
+  color: #a4680e;
+  margin-top: 2px;
+}
+.coin-reward-head .coin-badge {
+  padding-block: 5px;
+  box-shadow: none;
+  background: #fff9;
+}
+.reward-breakdown {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.reward-breakdown span {
+  background: #fff9;
+  border: 1px solid #eadca9;
+  border-radius: 20px;
+  padding: 5px 8px;
+  color: #74663d;
+  font-size: 8px;
+}
+.reward-breakdown b {
+  color: #9c6410;
+}
+@keyframes daily-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.85) rotate(2deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 640px) {
+  .site-nav > .coin-badge {
+    padding-right: 9px;
+  }
+  .daily-reward {
+    top: auto;
+    right: 12px;
+    left: 12px;
+    bottom: 15px;
+    min-width: 0;
+  }
+  .game-page > header .coin-badge {
+    padding: 5px;
+    gap: 4px;
+  }
+  .game-page > header .coin-badge .coin-symbol {
+    width: 18px;
+    height: 18px;
+  }
+  .game-page > header .coin-badge strong {
+    font-size: 10px;
+  }
+  .coin-reward {
+    margin: 11px 0;
+  }
+  .coin-reward-head .coin-badge {
+    display: none;
+  }
+}
 .hint-reveal {
   display: flex;
   align-items: center;

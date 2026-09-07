@@ -13,9 +13,12 @@ import {
   Trophy,
   Users,
   X,
+  BookOpen,
+  Share2,
 } from "lucide-react";
 import { POKEMON_GENERATIONS, findPokemon } from "../data/pokemonByGeneration";
 import { getPokemonCard } from "../data/pokemonCards";
+import { CoinBadge, DailyReward } from "./PokeCoins";
 
 const art = (id) => `/images/pokemon/${id}.png`;
 const heroCard = "/images/cards/280.webp";
@@ -83,12 +86,16 @@ function Rules({ close }) {
 }
 
 export function Landing({
+  onAdventure,
   onPokemon,
   onSolo,
   onInfinite,
   onVersus,
   loading,
   multiplayerLoading,
+  wallet,
+  dailyReward,
+  dismissDailyReward,
 }) {
   const [rules, setRules] = useState(false);
   return (
@@ -97,15 +104,24 @@ export function Landing({
         <Brand />
         <nav>
           <span className="nav-active">Le terrain de jeu</span>
+          <button onClick={onAdventure}>
+            <BookOpen size={16} /> Mon aventure
+          </button>
           <button onClick={() => setRules(true)}>
             <CircleHelp size={16} /> Comment jouer
           </button>
         </nav>
-        <span className="nav-note">
-          <i /> Un peu de jeu, chaque jour.
-        </span>
+        <CoinBadge coins={wallet.coins} compact />
       </header>
       <main className="landing-main">
+        <button className="adventure-entry" onClick={onAdventure}>
+          <BookOpen size={28} />
+          <span>
+            <strong>Ton aventure Pokémon commence ici.</strong>
+            <small>Album, Pokédex, défis quotidiens, quêtes et boutique.</small>
+          </span>
+          <ArrowRight size={22} />
+        </button>
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">
@@ -278,6 +294,7 @@ export function Landing({
         <span>Des lettres, des amis et un peu de chance.</span>
         <span>Fait pour le plaisir de jouer.</span>
       </footer>
+      <DailyReward amount={dailyReward} onClose={dismissDailyReward} />
       {rules && <Rules close={() => setRules(false)} />}
     </div>
   );
@@ -290,6 +307,7 @@ export function PokemonSetup({
   count,
   launch,
   home,
+  wallet,
 }) {
   return (
     <div className="experience">
@@ -298,7 +316,7 @@ export function PokemonSetup({
         <button className="text-button" onClick={home}>
           <ChevronLeft size={16} /> Tous les modes
         </button>
-        <span className="nav-note">L'aventure commence ici.</span>
+        <CoinBadge coins={wallet.coins} compact />
       </header>
       <main className="setup-main">
         <span className="eyebrow">
@@ -354,6 +372,14 @@ export function PokemonSetup({
             <small>
               Sans accents ni ponctuation · Nidoran F / M · Chiffres conservés
             </small>
+            <div className="economy-note">
+              <span className="coin-symbol">P</span>
+              <span>
+                <b>Gagne au moins 25 PokéCoins par victoire</b>
+                Bonus de rapidité, sans indice et de série
+                {wallet.streak > 0 && ` · Série actuelle : ${wallet.streak}`}
+              </span>
+            </div>
           </div>
           <button className="primary-button" onClick={launch}>
             C'est parti <Play size={17} />
@@ -369,18 +395,25 @@ export function Victory({
   attempts,
   pokemon,
   hintUsed = false,
+  reward,
+  coins,
   next,
   home,
+  collectedCard,
+  shareText,
+  nextLabel,
 }) {
   const entry = pokemon ? findPokemon(word) : null;
   const [card, setCard] = useState(null);
   const [cardLoading, setCardLoading] = useState(!!entry);
   const [failed, setFailed] = useState(null);
+  const [shareFeedback, setShareFeedback] = useState("");
+  const shownCard = card || collectedCard;
   // Only show the card once loaded; fall back to official artwork when fetch is done and empty
   const illustration =
-    card && failed !== card.image
-      ? card
-      : !cardLoading && entry
+    shownCard && failed !== shownCard.image
+      ? shownCard
+      : entry
         ? {
             name: entry.name,
             image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${entry.id}.png`,
@@ -389,20 +422,26 @@ export function Victory({
         : null;
   useEffect(() => {
     if (!entry) return;
-    const controller = new AbortController();
-    const signal = AbortSignal.any([
-      controller.signal,
-      AbortSignal.timeout(12000),
-    ]);
-    getPokemonCard(entry, signal)
-      .then((result) => {
-        if (!signal.aborted && result) setCard(result);
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active) setCardLoading(false);
+    }, 12000);
+    getPokemonCard(entry)
+      .then(async (result) => {
+        if (!active || !result) return;
+        const preview = new Image();
+        preview.src = result.image;
+        await preview.decode();
+        if (active) setCard(result);
       })
       .catch(() => {})
       .finally(() => {
-        if (!signal.aborted) setCardLoading(false);
+        if (active) setCardLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [entry]);
   const ref = useRef(null);
   useEffect(() => {
@@ -425,18 +464,10 @@ export function Victory({
           <span className="reward-orbit" />
           <span className="reward-spark">✳</span>
           <div
+            key={illustration?.image || "trophy"}
             className={`reward-card ${!illustration?.artist ? "official-reward" : ""}`}
           >
-            {cardLoading ? (
-              <div className="reward-fallback">
-                <Loader2 size={40} className="reward-loader" />
-                <strong>
-                  Une carte
-                  <br />
-                  approche…
-                </strong>
-              </div>
-            ) : illustration && failed !== illustration.image ? (
+            {illustration && failed !== illustration.image ? (
               <img
                 src={illustration.image}
                 onError={() => setFailed(illustration.image)}
@@ -454,10 +485,15 @@ export function Victory({
             )}
             <span className="card-shine" />
           </div>
-          <span className="reward-caption">
-            {cardLoading
-              ? "RECHERCHE EN COURS…"
-              : illustration?.source || "UNE BELLE VICTOIRE"}
+          <span className="reward-caption" role="status">
+            {cardLoading ? (
+              <>
+                <Loader2 size={12} className="reward-loader" /> Une carte se
+                prépare…
+              </>
+            ) : (
+              illustration?.source || "UNE BELLE VICTOIRE"
+            )}
           </span>
         </div>
         <div className="victory-copy">
@@ -481,6 +517,41 @@ export function Victory({
                 : `${hintUsed} ${hintUsed > 1 ? "indices utilisés" : "indice utilisé"}`}
             </span>
           )}
+          {pokemon && reward && (
+            <div className="coin-reward">
+              <div className="coin-reward-head">
+                <span className="coin-symbol">P</span>
+                <div>
+                  <small>RÉCOMPENSE</small>
+                  <strong>+{reward.total} PokéCoins</strong>
+                </div>
+                <CoinBadge coins={coins} compact />
+              </div>
+              <div className="reward-breakdown">
+                <span>
+                  Victoire <b>+{reward.base}</b>
+                </span>
+                <span>
+                  Précision <b>+{reward.speed}</b>
+                </span>
+                {reward.mastery > 0 && (
+                  <span>
+                    Sans indice <b>+{reward.mastery}</b>
+                  </span>
+                )}
+                {reward.streak > 0 && (
+                  <span>
+                    Série <b>+{reward.streak}</b>
+                  </span>
+                )}
+                {!!reward.special && (
+                  <span>
+                    Défi accompli <b>+{reward.special}</b>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           {illustration && (
             <div className="reward-details">
               <Sparkles size={20} />
@@ -498,8 +569,45 @@ export function Victory({
             </div>
           )}
           <button autoFocus className="primary-button" onClick={next}>
-            Encore une partie <ArrowRight size={18} />
+            {nextLabel || "Encore une partie"} <ArrowRight size={18} />
           </button>
+          {pokemon && collectedCard && (
+            <p className="share-result-feedback">
+              Illustration enregistrée dans ton album.
+            </p>
+          )}
+          {shareText && (
+            <button
+              className="share-result-button"
+              onClick={async () => {
+                try {
+                  if (navigator.share)
+                    await navigator.share({
+                      title: "Mon résultat Tusmo",
+                      text: shareText,
+                    });
+                  else {
+                    await navigator.clipboard.writeText(shareText);
+                    setShareFeedback(
+                      "Résultat copié, sans révéler le Pokémon.",
+                    );
+                  }
+                } catch (error) {
+                  if (error.name !== "AbortError")
+                    setShareFeedback(
+                      "Le partage est indisponible dans ce navigateur.",
+                    );
+                }
+              }}
+            >
+              <Share2 size={16} /> Partager sans spoiler
+            </button>
+          )}
+          {shareFeedback && (
+            <p role="status" className="share-result-feedback">
+              {shareFeedback}
+            </p>
+          )}
           <button className="text-button" onClick={home}>
             Retour à l'accueil
           </button>

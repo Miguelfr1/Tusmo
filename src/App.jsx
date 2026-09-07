@@ -11,11 +11,26 @@ import {
   Copy,
   XCircle,
   Sparkles,
+  Check,
+  MoveHorizontal,
+  Minus,
 } from "lucide-react";
 import {
   POKEMON_GENERATION_IDS,
   getPokemonWordPool,
+  findPokemon,
+  normalizePokemon,
+  getGeneration,
 } from "./data/pokemonByGeneration";
+import pokemonEntries from "./data/pokemon.json";
+import {
+  championTeam,
+  dailyPokemon,
+  dayKey,
+  officialCard,
+  shareResult,
+} from "./data/adventure.js";
+import Adventure from "./components/Adventure";
 
 import {
   Landing,
@@ -25,6 +40,10 @@ import {
 } from "./components/Experience";
 import PokemonHint from "./components/PokemonHint";
 import { Keyboard, PlayerCard, WordGrid } from "./components/GameBoard";
+import { CoinBadge, DailyReward } from "./components/PokeCoins";
+import LeaveRoundDialog from "./components/LeaveRoundDialog";
+import usePokeCoins from "./hooks/usePokeCoins";
+import { HINT_COSTS } from "./data/pokeCoinEconomy";
 
 // ID de l'application pour le chemin de stockage
 const appId = "tusmo-game-v1";
@@ -218,6 +237,24 @@ const getInitialGuessMask = (target, guesses) => {
   return mask.join("");
 };
 
+const getPokemonMask = (target, guesses, mode) => {
+  const mask = [...getInitialGuessMask(target, guesses)];
+  if (mode === "silhouette") {
+    for (let i = 1; i <= Math.min(guesses.length, target.length - 1); i++)
+      mask[i] = target[i];
+  }
+  return mask.join("");
+};
+
+const keyboardFromGuesses = (target, guesses) => {
+  const keys = {};
+  for (const guess of guesses) for (const [i, letter] of [...guess].entries()) {
+    const status = letter === target[i] ? 'correct' : target.includes(letter) ? 'present' : 'absent';
+    if (keys[letter] !== 'correct' && !(keys[letter] === 'present' && status === 'absent')) keys[letter] = status;
+  }
+  return keys;
+};
+
 // --- MAIN APP ---
 
 export default function TusmoClone() {
@@ -232,6 +269,8 @@ export default function TusmoClone() {
   // Navigation
   const [view, setView] = useState("menu");
   const [gameMode, setGameMode] = useState("single");
+  const [adventureMode, setAdventureMode] = useState("classic");
+  const [challengeRound, setChallengeRound] = useState(null);
   const [selectedPokemonGenerations, setSelectedPokemonGenerations] = useState(
     POKEMON_GENERATION_IDS,
   );
@@ -244,6 +283,8 @@ export default function TusmoClone() {
   const [gameState, setGameState] = useState("playing");
   const [hintUsed, setHintUsed] = useState(0);
   const [roundId, setRoundId] = useState(0);
+  const [roundReward, setRoundReward] = useState(null);
+  const [pendingExit, setPendingExit] = useState(null);
   const [message, setMessage] = useState("");
   const [shake, setShake] = useState(false);
   const [usedKeys, setUsedKeys] = useState({});
@@ -256,8 +297,53 @@ export default function TusmoClone() {
   const [inputCode, setInputCode] = useState("");
   const [playerName, setPlayerName] = useState("");
   const pokemonWordPool = getPokemonWordPool(selectedPokemonGenerations);
+  const {
+    wallet,
+    dailyReward,
+    dismissDailyReward,
+    spend,
+    rewardWin,
+    recordLoss,
+    saveError,
+    updateAdventure,
+    enrichAward,
+    claimQuest,
+    buyCosmetic,
+    openPack,
+    isWriter,
+  } = usePokeCoins();
+
+  useEffect(() => {
+    for (const [slot, value] of Object.entries(wallet.adventure.equipped))
+      document.documentElement.dataset[slot] = value;
+  }, [wallet.adventure.equipped]);
+
+  const persistChallenge = useCallback(
+    (patch) => {
+      if (!challengeRound) return;
+      updateAdventure((a) =>
+        adventureMode === "daily"
+          ? {
+              ...a,
+              daily: {
+                ...a.daily,
+                [challengeRound.day]: {
+                  ...a.daily[challengeRound.day],
+                  ...patch,
+                },
+              },
+            }
+          : { ...a, challenge: { ...a.challenge, ...patch } },
+      );
+    },
+    [adventureMode, challengeRound, updateAdventure],
+  );
 
   // --- INIT ---
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [view]);
 
   useEffect(() => {
     const initApp = async () => {
@@ -325,6 +411,38 @@ export default function TusmoClone() {
     }
   };
 
+  const goHome = useCallback(() => {
+    if (
+      view === "game" &&
+      gameMode === "pokemon" &&
+      gameState === "playing" &&
+      targetWord
+    ) {
+      if (!challengeRound)
+        recordLoss(roundId, {
+          pokemon: findPokemon(targetWord),
+          mode: adventureMode,
+          attempts: guesses.length,
+          hints: hintUsed,
+        });
+    }
+    setView("menu");
+    setGameState("playing");
+    setLobbyCode("");
+    setLobbyData(null);
+  }, [
+    adventureMode,
+    challengeRound,
+    gameMode,
+    gameState,
+    guesses.length,
+    hintUsed,
+    recordLoss,
+    roundId,
+    targetWord,
+    view,
+  ]);
+
   useEffect(() => {
     if (!multiplayer) return;
     return multiplayer.onAuthStateChanged(multiplayer.auth, setUser);
@@ -361,7 +479,7 @@ export default function TusmoClone() {
       },
     );
     return () => unsubscribe();
-  }, [lobbyCode, multiplayer, user, view]);
+  }, [goHome, lobbyCode, multiplayer, user, view]);
 
   // --- ACTIONS ---
 
@@ -580,6 +698,8 @@ export default function TusmoClone() {
   // --- STANDARD GAME LOGIC ---
 
   const startSingleGame = (mode) => {
+    setAdventureMode("classic");
+    setChallengeRound(null);
     setGameMode(mode);
     setScore(0);
     setView("game");
@@ -596,6 +716,8 @@ export default function TusmoClone() {
       return;
     }
 
+    setAdventureMode("classic");
+    setChallengeRound(null);
     setGameMode("pokemon");
     setScore(0);
     setView("game");
@@ -613,7 +735,8 @@ export default function TusmoClone() {
 
       const newWord = source[Math.floor(Math.random() * source.length)];
       setHintUsed(0);
-      setRoundId((id) => id + 1);
+      setRoundReward(null);
+      setRoundId(crypto.randomUUID());
 
       setTargetWord(newWord);
       setGuesses([]);
@@ -628,12 +751,173 @@ export default function TusmoClone() {
     [gameMode, getWordSource, selectedPokemonGenerations],
   );
 
-  const goHome = () => {
-    setView("menu");
+  const startAdventure = (mode, region = 1) => {
+    let round;
+    if (mode === "daily") {
+      const day = dayKey();
+      round = wallet.adventure.daily[day];
+      if (round && round.status !== "playing") return;
+      if (!round)
+        round = {
+          id: `daily:${day}`,
+          day,
+          word: normalizePokemon(dailyPokemon(pokemonEntries, day).name),
+          guesses: [],
+          hints: 0,
+          status: "playing",
+        };
+      updateAdventure((a) => ({ ...a, daily: { ...a.daily, [day]: round } }));
+    } else if (mode === "champion") {
+      round = wallet.adventure.challenge;
+      if (round?.status === "won" && round.index < 4) {
+        round = {
+          ...round,
+          id: crypto.randomUUID(),
+          index: round.index + 1,
+          word: round.words[round.index + 1],
+          guesses: [],
+          hints: 0,
+          status: "playing",
+        };
+      } else if (!round || round.status !== "playing") {
+        const words = championTeam(
+          pokemonEntries.filter((p) => getGeneration(p.id).id === region),
+          region,
+        ).map((p) => normalizePokemon(p.name));
+        round = {
+          id: crypto.randomUUID(),
+          region,
+          index: 0,
+          words,
+          word: words[0],
+          guesses: [],
+          hints: 0,
+          status: "playing",
+        };
+      }
+      updateAdventure((a) => ({ ...a, challenge: round }));
+    } else {
+      const p =
+        pokemonEntries[Math.floor(Math.random() * pokemonEntries.length)];
+      round = {
+        id: crypto.randomUUID(),
+        word: normalizePokemon(p.name),
+        guesses: [],
+        hints: 0,
+        status: "playing",
+      };
+    }
+    setAdventureMode(mode);
+    setChallengeRound(mode === "silhouette" ? null : round);
+    setGameMode("pokemon");
+    setSelectedPokemonGenerations(POKEMON_GENERATION_IDS);
+    setRoundId(round.id);
+    setTargetWord(round.word);
+    setGuesses(round.guesses);
+    setHintUsed(round.hints);
+    setRoundReward(null);
+    setCurrentGuess(getPokemonMask(round.word, round.guesses, mode));
+    setUsedKeys(keyboardFromGuesses(round.word, round.guesses));
+    setInputIndex(0);
     setGameState("playing");
-    setLobbyCode("");
-    setLobbyData(null);
+    setScore(0);
+    setMessage("");
+    setView("game");
   };
+
+  const nextPokemonRound = () => {
+    if (
+      adventureMode === "daily" ||
+      (adventureMode === "champion" &&
+        (gameState === "lost" || challengeRound?.index === 4))
+    ) {
+      setView("adventure");
+      setGameState("playing");
+      return;
+    }
+    if (adventureMode !== "classic")
+      startAdventure(adventureMode, challengeRound?.region);
+    else loadNextWord(false);
+  };
+
+  const purchaseHint = (step) => {
+    const cost = HINT_COSTS[step - 1];
+    if (!spend(cost, a => !challengeRound ? a : adventureMode === 'daily'
+      ? { ...a, daily: { ...a.daily, [challengeRound.day]: { ...a.daily[challengeRound.day], hints: step } } }
+      : { ...a, challenge: { ...a.challenge, hints: step } })) {
+      showMessage("Pas assez de PokéCoins.");
+      return false;
+    }
+    setHintUsed(step);
+    return true;
+  };
+
+  const restartCurrentRound = () => {
+    if (challengeRound) {
+      setView("adventure");
+      return;
+    }
+    if (gameMode === "pokemon" && gameState === "playing")
+      recordLoss(roundId, {
+        pokemon: findPokemon(targetWord),
+        mode: adventureMode,
+        attempts: guesses.length,
+        hints: hintUsed,
+      });
+    if (gameMode === "pokemon" && adventureMode === "silhouette")
+      startAdventure("silhouette");
+    else loadNextWord(true);
+  };
+
+  const requestExit = (action) => {
+    if (
+      view === "game" &&
+      gameMode === "pokemon" &&
+      gameState === "playing" &&
+      !challengeRound &&
+      wallet.streak > 0
+    ) {
+      setPendingExit(() => action);
+    } else action();
+  };
+
+  const settlePokemonRound = useCallback((won, finalGuesses) => {
+    const context = {
+      pokemon: findPokemon(targetWord),
+      mode: adventureMode,
+      day: challengeRound?.day,
+      region: challengeRound?.region,
+      championIndex: challengeRound?.index,
+      guesses: finalGuesses,
+    };
+    if (won) {
+      const reward = rewardWin(
+        roundId,
+        finalGuesses.length,
+        hintUsed,
+        context,
+      );
+      if (reward) {
+        setRoundReward(reward);
+        enrichAward(roundId, context.pokemon);
+      }
+    } else {
+      recordLoss(roundId, {
+        ...context,
+        attempts: finalGuesses.length,
+        hints: hintUsed,
+      });
+    }
+  }, [
+    hintUsed,
+    recordLoss,
+    rewardWin,
+    roundId,
+    adventureMode,
+    challengeRound,
+    targetWord,
+    enrichAward,
+  ]);
 
   const updateKeyboardStatus = useCallback(
     (guess) => {
@@ -670,10 +954,11 @@ export default function TusmoClone() {
 
     const newGuesses = [...guesses, currentGuess];
     setGuesses(newGuesses);
-
-    setTimeout(() => {
-      updateKeyboardStatus(currentGuess);
-    }, 1000);
+    if (view === 'game' && gameMode === 'pokemon') {
+      if (currentGuess === targetWord || newGuesses.length >= 6) settlePokemonRound(currentGuess === targetWord, newGuesses);
+      else persistChallenge({ guesses: newGuesses, status: 'playing' });
+    }
+    updateKeyboardStatus(currentGuess);
 
     if (currentGuess === targetWord) {
       if (view === "versus-game") {
@@ -686,9 +971,6 @@ export default function TusmoClone() {
         if (gameMode === "sequence") {
           const newScore = score + 1;
           setScore(newScore);
-          setTimeout(() => showMessage(`BRAVO ! +1 Point`), 1500);
-        } else {
-          setTimeout(() => showMessage("BRAVO ! 🏆"), 1500);
         }
       }
     } else if (newGuesses.length >= 6) {
@@ -701,10 +983,15 @@ export default function TusmoClone() {
         }, 2000);
       } else {
         setGameState("lost");
-        setTimeout(() => showMessage(`PERDU ! C'était : ${targetWord}`), 1500);
       }
     } else {
-      setCurrentGuess(getInitialGuessMask(targetWord, newGuesses));
+      setCurrentGuess(
+        getPokemonMask(
+          targetWord,
+          newGuesses,
+          gameMode === "pokemon" ? adventureMode : "classic",
+        ),
+      );
       setInputIndex(0);
     }
   }, [
@@ -717,6 +1004,9 @@ export default function TusmoClone() {
     targetWord,
     updateKeyboardStatus,
     view,
+    adventureMode,
+    persistChallenge,
+    settlePokemonRound,
   ]);
 
   const showMessage = (msg) => {
@@ -740,7 +1030,11 @@ export default function TusmoClone() {
           const newIndex = inputIndex - 1;
           setInputIndex(newIndex);
           if (newIndex > 0) {
-            const mask = getInitialGuessMask(targetWord, guesses);
+            const mask = getPokemonMask(
+              targetWord,
+              guesses,
+              gameMode === "pokemon" ? adventureMode : "classic",
+            );
             const chars = currentGuess.split("");
             chars[newIndex] = mask[newIndex];
             setCurrentGuess(chars.join(""));
@@ -764,12 +1058,28 @@ export default function TusmoClone() {
         }
       }
     },
-    [currentGuess, gameState, guesses, inputIndex, submitGuess, targetWord],
+    [
+      adventureMode,
+      currentGuess,
+      gameMode,
+      gameState,
+      guesses,
+      inputIndex,
+      submitGuess,
+      targetWord,
+    ],
   );
 
   useEffect(() => {
     if (!view.includes("game")) return;
     const listener = (e) => {
+      if (document.querySelector("dialog[open]")) return;
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.closest('input, textarea, [contenteditable="true"]') ||
+          (e.key === "Enter" && e.target.closest("button")))
+      )
+        return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const key = e.key.toUpperCase();
       if (key === "ENTER" || key === "BACKSPACE" || /^[A-Z0-9]$/.test(key)) {
@@ -783,15 +1093,35 @@ export default function TusmoClone() {
 
   // --- RENDER HELPERS ---
 
+  if (!isWriter) return <div className="experience"><main className="adventure-main"><div className="adventure-empty"><Loader2 size={32}/><h1>Une aventure à la fois.</h1><p>Connexion à ta sauvegarde. Si Tusmo est déjà ouvert dans un autre onglet, ferme cet autre onglet pour jouer ici. Cette page reprendra automatiquement.</p></div></main></div>;
+
+  if (view === "adventure")
+    return (
+      <Adventure
+        wallet={wallet}
+        home={goHome}
+        onClassic={startPokemonGame}
+        onStart={startAdventure}
+        claimQuest={claimQuest}
+        buyCosmetic={buyCosmetic}
+        openPack={openPack}
+        saveError={saveError}
+      />
+    );
+
   if (view === "menu") {
     return (
       <Landing
+        onAdventure={() => setView("adventure")}
         onPokemon={startPokemonGame}
         onSolo={() => startSingleGame("single")}
         onInfinite={() => startSingleGame("sequence")}
         onVersus={openMultiplayer}
         loading={isLoading}
         multiplayerLoading={multiplayerLoading}
+        wallet={wallet}
+        dailyReward={dailyReward}
+        dismissDailyReward={dismissDailyReward}
       />
     );
   }
@@ -804,6 +1134,7 @@ export default function TusmoClone() {
         count={pokemonWordPool.length}
         launch={launchPokemonGame}
         home={goHome}
+        wallet={wallet}
       />
     );
   }
@@ -812,7 +1143,8 @@ export default function TusmoClone() {
     return (
       <div className="lobby-page min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center font-sans relative select-none">
         <button
-          onClick={goHome}
+          aria-label="Retour à l’accueil"
+          onClick={() => requestExit(goHome)}
           className="absolute top-4 left-4 p-2 bg-slate-800 rounded-full hover:bg-slate-700"
         >
           <Home className="w-5 h-5" />
@@ -877,7 +1209,8 @@ export default function TusmoClone() {
     return (
       <div className="lobby-page min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center font-sans relative select-none">
         <button
-          onClick={goHome}
+          aria-label="Retour à l’accueil"
+          onClick={() => requestExit(goHome)}
           className="absolute top-4 left-4 p-2 bg-slate-800 rounded-full hover:bg-slate-700"
         >
           <Home className="w-5 h-5" />
@@ -969,6 +1302,18 @@ export default function TusmoClone() {
           backgroundSize: "30px 30px",
         }}
       ></div>
+      <DailyReward amount={dailyReward} onClose={dismissDailyReward} />
+      {pendingExit && (
+        <LeaveRoundDialog
+          streak={wallet.streak}
+          cancel={() => setPendingExit(null)}
+          confirm={() => {
+            const action = pendingExit;
+            setPendingExit(null);
+            action();
+          }}
+        />
+      )}
 
       {!isVersus && gameState === "won" && (
         <Victory
@@ -977,7 +1322,39 @@ export default function TusmoClone() {
           attempts={guesses.length}
           pokemon={gameMode === "pokemon"}
           hintUsed={hintUsed}
-          next={() => loadNextWord(false)}
+          reward={roundReward}
+          coins={wallet.coins}
+          collectedCard={wallet.adventure.awards[roundId]?.card}
+          shareText={
+            gameMode === "pokemon"
+              ? shareResult(
+                  targetWord,
+                  guesses,
+                  hintUsed,
+                  adventureMode === "daily"
+                    ? `quotidien ${challengeRound?.day}`
+                    : adventureMode === "champion"
+                      ? "champion"
+                      : adventureMode === "silhouette"
+                        ? "silhouette"
+                        : "classique",
+                )
+              : undefined
+          }
+          nextLabel={
+            gameMode === "pokemon" && adventureMode === "daily"
+              ? "Retour au carnet"
+              : gameMode === "pokemon" && adventureMode === "champion"
+                ? challengeRound?.index === 4
+                  ? "Parcours terminé !"
+                  : "Étape suivante"
+                : undefined
+          }
+          next={
+            gameMode === "pokemon"
+              ? nextPokemonRound
+              : () => loadNextWord(false)
+          }
           home={goHome}
         />
       )}
@@ -985,7 +1362,8 @@ export default function TusmoClone() {
       <header className="w-full bg-blue-900/90 border-b border-blue-700 p-2 sm:p-4 flex justify-between items-center shadow-lg z-20">
         <div className="flex items-center gap-2 sm:gap-4">
           <button
-            onClick={goHome}
+            aria-label="Retour à l’accueil"
+            onClick={() => requestExit(goHome)}
             className="p-2 bg-blue-950 rounded-full hover:bg-blue-800 border border-blue-700 transition-colors"
           >
             <Home className="w-5 h-5 text-blue-200" />
@@ -1007,6 +1385,9 @@ export default function TusmoClone() {
         </div>
 
         <div className="flex items-center gap-4">
+          {gameMode === "pokemon" && !isVersus && (
+            <CoinBadge coins={wallet.coins} compact />
+          )}
           {gameMode === "sequence" && !isVersus && (
             <div className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-purple-500/50 shadow-inner">
               <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
@@ -1029,9 +1410,9 @@ export default function TusmoClone() {
             </div>
           )}
 
-          {!isVersus && (
+          {!isVersus && !challengeRound && (
             <button
-              onClick={() => loadNextWord(true)}
+              onClick={() => requestExit(restartCurrentRound)}
               className="p-2 hover:bg-blue-800 rounded-full transition-colors group border border-transparent hover:border-blue-600"
               title="Recommencer"
             >
@@ -1083,7 +1464,11 @@ export default function TusmoClone() {
               word={targetWord}
               pokemon={gameMode === "pokemon"}
               score={gameMode === "sequence" ? score : undefined}
-              next={() => loadNextWord(true)}
+              next={
+                gameMode === "pokemon"
+                  ? nextPokemonRound
+                  : () => loadNextWord(true)
+              }
               home={goHome}
             />
           )}
@@ -1110,7 +1495,8 @@ export default function TusmoClone() {
                 <span className="font-bold text-yellow-400">{winner.name}</span>
               </p>
               <button
-                onClick={goHome}
+                aria-label="Retour à l’accueil"
+                onClick={() => requestExit(goHome)}
                 className="px-8 py-3 bg-blue-600 rounded-lg hover:bg-blue-500 font-bold transition-colors shadow-lg"
               >
                 Retour Menu
@@ -1127,14 +1513,50 @@ export default function TusmoClone() {
               {targetWord.length} caractères · Essai{" "}
               {Math.min(guesses.length + 1, 6)} sur 6
             </p>
+            {gameMode === "pokemon" && adventureMode !== "classic" && (
+              <p className="challenge-game-label">
+                {adventureMode === "daily"
+                  ? "Défi quotidien · +75 pièces bonus · reprise automatique"
+                  : adventureMode === "champion"
+                    ? `Parcours du champion · Pokémon ${(challengeRound?.index || 0) + 1} / 5`
+                    : "Mode silhouette · une lettre révélée par erreur"}
+              </p>
+            )}
           </div>
-          {gameMode === "pokemon" && !isVersus && gameState === "playing" && (
-            <PokemonHint
-              key={roundId}
-              word={targetWord}
-              onReveal={(step) => setHintUsed(step)}
-            />
-          )}
+          {gameMode === "pokemon" &&
+            adventureMode === "silhouette" &&
+            gameState === "playing" && (
+              <div className="silhouette-game">
+                <img
+                  key={targetWord}
+                  src={officialCard(findPokemon(targetWord)).image}
+                  alt="Silhouette du Pokémon à deviner"
+                  onError={(e) => {
+                    e.currentTarget.style.visibility = "hidden";
+                    e.currentTarget.nextElementSibling.textContent =
+                      "Image indisponible. Les lettres continuent à se révéler après chaque erreur.";
+                  }}
+                />
+                <span>
+                  Reconnais sa silhouette. Le bonus sans indice ne s’applique
+                  pas dans ce mode.
+                </span>
+              </div>
+            )}
+          {gameMode === "pokemon" &&
+            adventureMode !== "silhouette" &&
+            !isVersus &&
+            gameState === "playing" && (
+              <PokemonHint
+                key={roundId}
+                word={targetWord}
+                coins={wallet.coins}
+                costs={HINT_COSTS}
+                initialStep={challengeRound?.hints || 0}
+                onPurchase={purchaseHint}
+                onReveal={(step) => setHintUsed(step)}
+              />
+            )}
           <WordGrid
             targetWord={targetWord}
             guesses={guesses}
@@ -1146,13 +1568,13 @@ export default function TusmoClone() {
 
           <div className="grid-legend">
             <span>
-              <i /> Bien placé
+              <Check size={12} aria-hidden="true" /> Bien placé
             </span>
             <span>
-              <i /> Mal placé
+              <MoveHorizontal size={12} aria-hidden="true" /> Mal placé
             </span>
             <span>
-              <i /> Absent
+              <Minus size={12} aria-hidden="true" /> Absent
             </span>
           </div>
           <Keyboard
