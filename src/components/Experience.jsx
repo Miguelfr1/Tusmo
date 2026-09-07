@@ -408,7 +408,13 @@ export function Victory({
   const [cardLoading, setCardLoading] = useState(!!entry);
   const [failed, setFailed] = useState(null);
   const [shareFeedback, setShareFeedback] = useState("");
-  const shownCard = card || collectedCard;
+  // La victoire enregistre d abord un repli « Pokédex » dans l album, remplacé
+  // par la vraie carte quelques instants plus tard. Tant que ce repli est le
+  // seul visuel disponible, on ne montre rien : sinon le Pokémon apparaît, puis
+  // sa carte le remplace.
+  const savedCard =
+    collectedCard && collectedCard.source !== "Pokédex" ? collectedCard : null;
+  const shownCard = card || savedCard;
   // Une seule image : la carte. L illustration officielle n arrive qu en
   // dernier recours, une fois la recherche terminée, pour éviter deux
   // apparitions successives sur une connexion lente.

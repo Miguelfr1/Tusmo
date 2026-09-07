@@ -1,3 +1,4 @@
+import { cardArtScore } from "./pokemonCards.js";
 export const PACK_COST = 120;
 export const DAILY_CHALLENGE_REWARD = 75;
 export const CHAMPION_REWARD = 150;
@@ -292,4 +293,22 @@ export function shareResult(target, guesses, hints, mode = "classique") {
       .join("");
   });
   return `Tusmo Pokémon · ${mode}\n${guesses.at(-1) === target ? guesses.length : "X"}/6 · ${hints} indice(s)\n${rows.join("\n")}\n${guesses.at(-1) === target ? "Une illustration ajoutée à mon album !\n" : ""}https://tusmo-sigma.vercel.app`;
+}
+
+// Paliers de rareté déduits du score d illustration : ils pilotent l intensité
+// de l ouverture de booster (aura, particules, mise en scène).
+export const CARD_TIERS = {
+  standard: { id: "standard", label: "Illustration classique", short: "Classique", rank: 0 },
+  rare: { id: "rare", label: "Rare", short: "Rare", rank: 1 },
+  epic: { id: "epic", label: "Ultra rare", short: "Ultra rare", rank: 2 },
+  legend: { id: "legend", label: "Illustration spéciale", short: "Spéciale", rank: 3 },
+};
+
+export function cardTier(card) {
+  if (!card || card.source === "Pokédex") return CARD_TIERS.standard;
+  const score = cardArtScore(card);
+  if (score >= 85) return CARD_TIERS.legend;
+  if (score >= 60) return CARD_TIERS.epic;
+  if (score >= 30) return CARD_TIERS.rare;
+  return CARD_TIERS.standard;
 }

@@ -29,6 +29,7 @@ import {
   getStats,
   officialCard,
 } from "../data/adventure.js";
+import BoosterOpening from "./BoosterOpening";
 import { Brand } from "./Experience";
 import { CoinBadge } from "./PokeCoins";
 
@@ -471,7 +472,6 @@ function Challenges({ adventure, onStart, onClassic }) {
 
 function Shop({ wallet, buyCosmetic, openPack, notify }) {
   const [pack, setPack] = useState(null);
-  const [revealed, setRevealed] = useState(0);
   const [confirmPack, setConfirmPack] = useState(false);
   const purchasePack = () => {
     const pool = [...pokemon];
@@ -485,11 +485,10 @@ function Shop({ wallet, buyCosmetic, openPack, notify }) {
       return;
     }
     setPack(ids);
-    setRevealed(0);
     setConfirmPack(false);
     notify("Booster ajouté à ton album. Tes cartes sont sauvegardées.");
   };
-  const visiblePack = pack || wallet.adventure.lastPack;
+  const visiblePack = wallet.adventure.lastPack;
   return (
     <section>
       <div className="booster-banner">
@@ -541,46 +540,36 @@ function Shop({ wallet, buyCosmetic, openPack, notify }) {
           )}
         </div>
       </div>
+      {pack && (
+        <BoosterOpening
+          key={pack.join("|")}
+          ids={pack}
+          awards={wallet.adventure.awards}
+          cost={PACK_COST}
+          coins={wallet.coins}
+          onAgain={purchasePack}
+          onClose={() => setPack(null)}
+        />
+      )}
       {!!visiblePack?.length && (
-        <div className="pack-opening" aria-live="polite">
-          <h3>{pack ? "Ton booster est prêt." : "Ton dernier booster"}</h3>
+        <div className="pack-opening">
+          <h3>Ton dernier booster</h3>
           <div className="pack-cards">
-            {visiblePack.map((id, i) => {
+            {visiblePack.map((id) => {
               const award = wallet.adventure.awards[id];
               if (!award) return null;
               return (
-                <button
-                  key={id}
-                  className={
-                    !pack || i < revealed
-                      ? "pack-card is-revealed"
-                      : "pack-card"
-                  }
-                  disabled={!pack || i < revealed}
-                  aria-label={
-                    !pack || i < revealed
-                      ? award.card.name
-                      : `Révéler la carte ${i + 1}`
-                  }
-                  onClick={() => setRevealed(i + 1)}
-                >
-                  {!pack || i < revealed ? (
-                    <>
-                      <CardImage card={award.card} />
-                      <strong>{award.card.name}</strong>
-                      <small>{award.card.rarity}</small>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={38} />
-                      <strong>Toucher pour révéler</strong>
-                      <span>{i + 1} / 3</span>
-                    </>
-                  )}
-                </button>
+                <article className="pack-card is-revealed" key={id}>
+                  <CardImage card={award.card} />
+                  <strong>{award.card.name}</strong>
+                  <small>{award.card.rarity}</small>
+                </article>
               );
             })}
           </div>
+          <button className="pack-replay" onClick={() => setPack(visiblePack)}>
+            <Sparkles size={15} /> Revoir l’ouverture
+          </button>
         </div>
       )}
       <div className="adventure-section-title">
