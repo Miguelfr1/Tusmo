@@ -50,13 +50,15 @@ const appId = "tusmo-game-v1";
 
 // --- DATA & DICTIONARY ---
 
-// 1. URL pour la VALIDATION (Dictionnaire complet ~200k mots)
-const ALL_WORDS_URL =
-  "https://raw.githubusercontent.com/words/an-array-of-french-words/master/index.json";
+// Listes servies avec le site, générées par scripts/build-dictionnaire.mjs.
+// Elles étaient auparavant tirées de raw.githubusercontent.com à chaque
+// chargement, avec un cache de cinq minutes seulement.
 
-// 2. URL pour les SOLUTIONS (Fréquence ~10k mots)
-const COMMON_WORDS_URL =
-  "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt";
+// 1. Validation des tentatives : tous les mots de 3 à 14 lettres.
+const ALL_WORDS_URL = "/mots/tous-v1.txt";
+
+// 2. Solutions du mode solo : les mots courants de 5 à 8 lettres.
+const COMMON_WORDS_URL = "/mots/courants-v1.txt";
 
 const FALLBACK_WORDS = [
   "ARBRE",
@@ -350,39 +352,18 @@ export default function TusmoClone() {
       setPlayerName(`Joueur ${Math.floor(Math.random() * 1000)}`);
 
       try {
-        const dictResponse = await fetch(ALL_WORDS_URL, {
-          signal: AbortSignal.timeout(10000),
-        });
+        // Déjà normalisées et dédoublonnées à la génération : il ne reste
+        // qu à découper.
+        const [dictResponse, freqResponse] = await Promise.all([
+          fetch(ALL_WORDS_URL, { signal: AbortSignal.timeout(15000) }),
+          fetch(COMMON_WORDS_URL, { signal: AbortSignal.timeout(15000) }),
+        ]);
         if (!dictResponse.ok) throw new Error("Dictionnaire indisponible");
-        const dictData = await dictResponse.json();
-        // 3 à 14 lettres : les noms de Pokémon couvrent toute cette plage et
-        // les mots français servent de tentatives d exploration.
-        const fullDict = dictData
-          .filter((word) => word.length >= 3 && word.length <= 14)
-          .map(normalize);
-        const uniqueFullDict = [...new Set(fullDict)];
-        setDictionary(uniqueFullDict);
-
-        const freqResponse = await fetch(COMMON_WORDS_URL, {
-          signal: AbortSignal.timeout(10000),
-        });
         if (!freqResponse.ok) throw new Error("Liste de mots indisponible");
-        const freqText = await freqResponse.text();
-        const freqDict = freqText
-          .split("\n")
-          .map((line) => line.split(" ")[0])
-          .filter((word) => word && word.length >= 5 && word.length <= 8)
-          .filter(
-            (word) =>
-              !word.includes("-") && !word.includes(" ") && !word.includes("'"),
-          )
-          .map(normalize);
-
-        const uniqueSolutions = [...new Set(freqDict)].slice(0, 4000);
-        const verifiedSolutions = uniqueSolutions.filter((w) =>
-          uniqueFullDict.includes(w),
+        setDictionary((await dictResponse.text()).split("\n").filter(Boolean));
+        setSolutionDictionary(
+          (await freqResponse.text()).split("\n").filter(Boolean),
         );
-        setSolutionDictionary(verifiedSolutions);
       } catch (err) {
         console.error("Fallback dico", err);
         const fb = FALLBACK_WORDS.map(normalize);
@@ -1381,12 +1362,8 @@ export default function TusmoClone() {
             <Home className="w-5 h-5 text-blue-200" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-600 hidden sm:flex items-center justify-center text-white font-bold rounded shadow-sm text-lg border border-red-500">
-              T
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-blue-100 drop-shadow-md">
-              USMO
-            </h1>
+            <div className="brand-mark game-brand-mark">t</div>
+            <p className="game-brand-word">USMO</p>
             {/* DEBUG: Affichage du mot solution */}
             {/* {targetWord && (
                 <span className="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-300 text-xs font-mono rounded border border-yellow-500/50">
@@ -1520,15 +1497,14 @@ export default function TusmoClone() {
             <span className="eyebrow">
               {gameMode === "pokemon" ? "LE DÉFI POKÉMON" : "À TOI DE JOUER"}
             </span>
-            <h2>Un nom à découvrir.</h2>
+            <h1>Un nom à découvrir.</h1>
             <p>
               {targetWord.length} caractères · Essai{" "}
               {Math.min(guesses.length + 1, 6)} sur 6
             </p>
             {gameMode === "pokemon" && (
               <p className="game-intro-tip">
-                Les mots français sont acceptés pour explorer les lettres. La
-                solution, elle, reste un Pokémon.
+                Les mots français sont acceptés comme tentatives.
               </p>
             )}
             {gameMode === "pokemon" && adventureMode !== "classic" && (

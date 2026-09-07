@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Gift, X } from "lucide-react";
 import WalletDialog from "./WalletDialog";
 
@@ -22,6 +22,13 @@ export function CoinBadge({ coins, compact = false }) {
 }
 
 export function DailyReward({ amount, onClose }) {
+  // Une félicitation n a pas à rester en travers de l écran : elle se retire
+  // seule, et le bouton sert à qui veut aller plus vite.
+  useEffect(() => {
+    if (!amount) return;
+    const timer = setTimeout(onClose, 7000);
+    return () => clearTimeout(timer);
+  }, [amount, onClose]);
   if (!amount) return null;
   return (
     <aside className="daily-reward" role="status">

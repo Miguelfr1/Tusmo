@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Gift, Sparkles, X } from "lucide-react";
+import { ArrowRight, BookOpen, Gift, X } from "lucide-react";
 import pokemon from "../data/pokemon.json";
 import { cardTier, officialCard } from "../data/adventure.js";
 
 // Distance de glissement, en pixels, pour arracher le sceau.
 const TEAR_DISTANCE = 165;
+// Les mascottes livrées avec le site : un sachet met toujours une vedette en
+// couverture, et celle-ci doit s afficher sans aller la chercher sur le réseau.
+const COVER_STARS = [1, 25, 155, 258, 387, 501, 653, 722, 813, 906];
 // Au-delà, on ouvre même si le catalogue de cartes n a pas répondu.
 const ENRICH_TIMEOUT = 6000;
 
@@ -34,9 +37,17 @@ export default function BoosterOpening({ ids, awards, cost, coins, onAgain, onCl
   const [revealed, setRevealed] = useState(0);
   const [order, setOrder] = useState(null);
   const [expired, setExpired] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0.5, y: 0.5 });
   const dragRef = useRef(null);
   const dialogRef = useRef(null);
   const [calm] = useState(reducedMotion);
+  // Une couverture stable pour un même sachet, différente d un sachet à l autre.
+  const featured = useMemo(() => {
+    const seed = ids.join("");
+    let hash = 2166136261;
+    for (const char of seed) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+    return COVER_STARS[(hash >>> 0) % COVER_STARS.length];
+  }, [ids]);
 
   const pending = useMemo(
     () => ids.map((id) => awards[id]).filter(Boolean),
@@ -111,7 +122,16 @@ export default function BoosterOpening({ ids, awards, cost, coins, onAgain, onCl
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current) {
+      // Hors glissement, le pointeur incline le sachet : le foil réagit.
+      if (calm || event.pointerType === "touch") return;
+      const box = event.currentTarget.getBoundingClientRect();
+      setTilt({
+        x: +((event.clientX - box.left) / box.width).toFixed(3),
+        y: +((event.clientY - box.top) / box.height).toFixed(3),
+      });
+      return;
+    }
     const across = Math.abs(event.clientX - dragRef.current.x);
     const upward = Math.max(0, dragRef.current.y - event.clientY);
     const progress = Math.min(1, (across + upward) / TEAR_DISTANCE);
@@ -123,6 +143,7 @@ export default function BoosterOpening({ ids, awards, cost, coins, onAgain, onCl
     dragRef.current = null;
     setTear(0);
   };
+  const resetTilt = () => setTilt({ x: 0.5, y: 0.5 });
 
   const revealNext = () => {
     if (phase !== "revealing" || revealed >= cards.length) return;
@@ -164,30 +185,32 @@ export default function BoosterOpening({ ids, awards, cost, coins, onAgain, onCl
           <div className="booster-pack-zone">
             <div
               className="booster-pack"
-              style={{ "--tear": tear }}
+              style={{ "--tear": tear, "--px": tilt.x, "--py": tilt.y }}
               data-ready={phase === "ready" || undefined}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={releaseTear}
               onPointerCancel={releaseTear}
+              onPointerLeave={resetTilt}
             >
-              <span className="booster-pack-seal">
-                <i />
-                <i />
-                <i />
-              </span>
-              <div className="booster-pack-body">
-                <span className="booster-pack-shine" aria-hidden="true" />
-                <b>TUSMO</b>
-                <strong>
-                  TRÉSORS
-                  <br />
-                  POKÉMON
-                </strong>
-                <span className="booster-pack-mark" aria-hidden="true">
-                  <Sparkles size={22} />
-                </span>
-                <small>3 ILLUSTRATIONS</small>
+              <div className="booster-pack-tilt">
+                <div className="booster-pack-tube">
+                  <img
+                    className="booster-pack-art"
+                    src={`/images/pokemon/${featured}.png`}
+                    alt=""
+                    draggable="false"
+                  />
+                  <span className="booster-wordmark">Pokémon</span>
+                  <span className="booster-pack-folds" aria-hidden="true" />
+                  <span className="booster-pack-foil" aria-hidden="true" />
+                  <span className="booster-pack-gloss" aria-hidden="true" />
+                  <div className="booster-pack-band">
+                    <span className="booster-pack-count">3 CARTES</span>
+                  </div>
+                </div>
+                <span className="booster-crimp" data-edge="bottom" aria-hidden="true" />
+                <span className="booster-crimp" data-edge="top" aria-hidden="true" />
               </div>
             </div>
             <span className="booster-shock" aria-hidden="true" />

@@ -1,0 +1,241 @@
+/* ---------------------------------------------------------------------------
+   Vocabulaire de contrôles partagé.
+
+   Il manquait au projet : `.secondary-button` n avait aucune définition de
+   base, donc « Acheter », « Réclamer » ou « Équiper » s affichaient en texte
+   nu. Les barres de progression étaient les widgets natifs du navigateur.
+   Ce fichier tient ces deux briques, plus les affordances de défilement.
+   --------------------------------------------------------------------------- */
+
+/* --- Action secondaire --------------------------------------------------- */
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 11px 17px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 1px 0 #24452a14;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    transform 0.18s;
+}
+.secondary-button:hover:not(:disabled) {
+  background: #f2f5e8;
+  border-color: #b0c0a4;
+  transform: translateY(-1px);
+}
+.secondary-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+/* Une action déjà accomplie n est plus une action : elle devient un état. */
+.secondary-button:disabled {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: default;
+}
+/* L action qui coûte des pièces se distingue de celle qui n en coûte pas. */
+.secondary-button[data-cost] {
+  border-color: #e0c98a;
+  background: linear-gradient(180deg, #fffaea, #fdf3d8);
+  color: var(--gold-ink);
+}
+.secondary-button[data-cost]:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff6da, #fbecc4);
+  border-color: #d3b76a;
+}
+
+/* Bouton de texte : pas de fond, mais une cible et un soulignement au survol. */
+.text-button,
+.adventure-text-button {
+  min-height: 42px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.text-button:hover,
+.adventure-text-button:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* --- Progression --------------------------------------------------------- */
+
+/* Le rendu natif de <progress> diffère à chaque moteur et sort de la palette.
+   On repeint la piste et la barre dans les trois moteurs. */
+progress {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  height: 9px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-sunk);
+  color: #4f7f42;
+}
+progress::-webkit-progress-bar {
+  background: var(--surface-sunk);
+  border-radius: 99px;
+}
+progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #6ba85a, #4f7f42);
+  border-radius: 99px;
+}
+progress::-moz-progress-bar {
+  background: #4f7f42;
+  border-radius: 99px;
+}
+/* Une barre pleine se remarque. */
+progress.is-complete::-webkit-progress-value {
+  background: linear-gradient(90deg, #e0a52c, #c3821a);
+}
+progress.is-complete::-moz-progress-bar {
+  background: #c3821a;
+}
+
+/* --- Défilement horizontal ----------------------------------------------- */
+
+/* Une bande qui déborde doit le dire : un dégradé sur le bord encore masqué. */
+.scroll-strip {
+  position: relative;
+  scrollbar-width: none;
+}
+.scroll-strip::-webkit-scrollbar {
+  display: none;
+}
+.scroll-shell {
+  position: relative;
+}
+.scroll-shell::before,
+.scroll-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 1px;
+  width: 42px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: var(--z-raised);
+}
+.scroll-shell::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--paper) 15%, transparent);
+}
+.scroll-shell::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--paper) 15%, transparent);
+}
+.scroll-shell[data-start]::before,
+.scroll-shell[data-end]::after {
+  opacity: 1;
+}
+
+/* --- Cibles tactiles ----------------------------------------------------- */
+
+/* 24x24 pour fermer une notification, c est un piège au pouce. */
+.daily-reward > button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--gold-ink);
+}
+.daily-reward > button:hover {
+  background: #00000010;
+}
+.adventure-filters label {
+  min-height: 44px;
+}
+.adventure-filters input:not([type="checkbox"]) {
+  min-height: 40px;
+}
+.adventure-filters .checkbox-label {
+  gap: 9px;
+  padding-right: 4px;
+}
+.adventure-filters input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #4f7f42;
+}
+
+/* --- Page de jeu --------------------------------------------------------- */
+
+/* La tuile de marque était masquée sous 640 px : l en-tête affichait « USMO ».
+   Elle reste visible, à une taille adaptée. */
+.game-brand-mark {
+  width: 30px;
+  height: 30px;
+  font-size: 23px;
+  box-shadow: 0 2px 0 #ba4624;
+}
+.game-brand-word {
+  margin: 0;
+  font-family: Nunito, sans-serif;
+  font-weight: 1000;
+  font-size: 25px;
+  letter-spacing: -1px;
+  color: var(--ink);
+}
+
+/* --- Quêtes -------------------------------------------------------------- */
+
+/* En 1440 px, le titre et son bouton se retrouvaient à 900 px l un de l autre. */
+.quest-list article,
+.adventure-content > section > .adventure-muted,
+.stats-strip {
+  max-width: 880px;
+}
+.quest-list article {
+  gap: 28px;
+}
+
+/* --- Confirmation d achat ------------------------------------------------ */
+
+.confirm-dialog {
+  max-width: 380px;
+  text-align: center;
+}
+.confirm-dialog p {
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+.confirm-dialog .primary-button {
+  width: 100%;
+  gap: 10px;
+  margin-top: 6px;
+}
+.confirm-dialog .text-button {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Dernières reprises de l audit : sur fond de carte teinté, l encre
+   secondaire descendait à 4,2:1. */
+.mode-card h3 span {
+  color: var(--ink-soft);
+}
+/* La lettre témoin d une couleur de grille doit rester lisible sur les
+   pastilles claires comme sur les foncées. */
+.cosmetic-swatch {
+  text-shadow: 0 1px 2px #00000059;
+}
+/* 44 px partout où le pouce doit viser. */
+.daily-reward > button,
+.game-page > header button {
+  min-width: 44px;
+  min-height: 44px;
+}

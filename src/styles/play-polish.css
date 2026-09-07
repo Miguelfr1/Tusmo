@@ -403,8 +403,11 @@
     margin-top: 18px;
     gap: 14px;
   }
+  /* Ancre basse + clavier fixe = le bandeau se posait pile sur la grille.
+     Sur la page de jeu il descend du haut, sous l en-tête collant. */
   .game-page .daily-reward {
-    bottom: calc(220px + env(safe-area-inset-bottom));
+    top: calc(env(safe-area-inset-top) + 62px);
+    bottom: auto;
   }
   .wallet-body {
     padding: 18px 20px;

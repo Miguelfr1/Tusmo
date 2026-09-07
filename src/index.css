@@ -7,10 +7,37 @@
   background: #f7f8ee;
   font-synthesis: none;
   color-scheme: light;
+
+  /* Encres. Les trois niveaux passent AA sur la crème et sur la surface :
+     7,2:1 / 6,0:1 / 4,8:1. Rien de plus clair ne porte de texte. */
   --ink: #193d36;
-  --orange: #eb683d;
-  --yellow: #ffdb57;
+  --ink-soft: #40584d;
+  --ink-muted: #4e6356;
+  --ink-faint: #5f7267;
+
+  /* Surfaces */
+  --paper: #f7f8ee;
+  --surface: #fffdf3;
+  --surface-sunk: #eff1e5;
   --line: #dce4d4;
+  --line-strong: #c6d1bc;
+
+  /* Accents. --orange sert aux aplats décoratifs, --action porte du texte
+     blanc : 4,8:1, alors que l orange d origine plafonnait à 3,2:1. */
+  --orange: #eb683d;
+  --action: #c8481c;
+  --action-hover: #b83f14;
+  --action-shadow: #97330f;
+  --yellow: #ffdb57;
+  --gold-ink: #6b4a08;
+
+  /* Échelle d empilement nommée : plus de 9999 improvisé. */
+  --z-base: 1;
+  --z-raised: 5;
+  --z-sticky: 20;
+  --z-keyboard: 25;
+  --z-overlay: 40;
+  --z-toast: 80;
 }
 * {
   box-sizing: border-box;
@@ -78,7 +105,7 @@ button:active {
   width: 38px;
   height: 38px;
   color: #fff;
-  background: var(--orange);
+  background: var(--action);
   display: grid;
   place-items: center;
   border-radius: 12px 12px 12px 3px;
@@ -171,18 +198,18 @@ button:active {
   font-size: 60px;
 }
 .hero-copy > p {
-  color: #697b70;
+  color: var(--ink-muted);
   font-size: 15px;
   line-height: 1.85;
   margin-bottom: 27px;
 }
 .primary-button {
-  background: var(--orange);
+  background: var(--action);
   color: #fff;
   padding: 16px 23px;
-  border: 1px solid #d15b32;
+  border: 1px solid var(--action-hover);
   border-radius: 12px;
-  box-shadow: 0 4px 0 #b84828;
+  box-shadow: 0 4px 0 var(--action-shadow);
   font-weight: 700;
   font-size: 13px;
   display: inline-flex;
@@ -191,13 +218,13 @@ button:active {
   gap: 25px;
 }
 .primary-button:hover {
-  background: #da562b;
+  background: var(--action-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 #b84828;
+  box-shadow: 0 6px 0 var(--action-shadow);
 }
 .hero-caption {
   font-size: 10px;
-  color: #728075;
+  color: var(--ink-faint);
   display: flex;
   gap: 12px;
   align-items: center;
@@ -211,13 +238,13 @@ button:active {
   background: #eff1e5;
   border: 1px solid #d8decd;
   border-radius: 4px;
-  color: #7c8876;
+  color: var(--ink-faint);
   padding: 4px 6px;
 }
 .mini-tiles b:first-child {
   color: white;
-  background: var(--orange);
-  border-color: var(--orange);
+  background: var(--action);
+  border-color: var(--action);
 }
 .hero-art {
   height: 455px;
@@ -321,8 +348,8 @@ button:active {
   display: grid;
   place-items: center;
   color: white;
-  background: var(--orange);
-  border: 2px solid #b64c2a;
+  background: var(--action);
+  border: 2px solid var(--action-shadow);
   border-radius: 7px;
   box-shadow: 0 4px 0 #b64c2a;
   font-size: 23px;
@@ -381,7 +408,7 @@ button:active {
   right: 20px;
   font-size: 8px;
   letter-spacing: 1.5px;
-  color: #798b73;
+  color: var(--ink-faint);
 }
 .section-heading {
   display: flex;
@@ -401,7 +428,7 @@ button:active {
   gap: 12px;
   font-size: 9px;
   letter-spacing: 1.1px;
-  color: #71816a;
+  color: var(--ink-faint);
 }
 .mode-grid {
   display: grid;
@@ -476,7 +503,7 @@ button:active {
     sans-serif;
   letter-spacing: 0;
   margin-top: 5px;
-  color: #637460;
+  color: var(--ink-faint);
 }
 .mode-card p {
   font-size: 11px;
@@ -525,12 +552,12 @@ button:active {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 10px;
-  color: #657661;
+  font-size: 11px;
+  color: var(--ink-muted);
 }
 .how-strip b {
   font-family: Nunito, sans-serif;
-  color: #b0bba4;
+  color: #7d8f72;
   font-size: 20px;
 }
 .site-footer {
@@ -540,7 +567,7 @@ button:active {
   display: flex;
   align-items: center;
   gap: 25px;
-  color: #7c8774;
+  color: var(--ink-faint);
   font-size: 9px;
 }
 .site-footer .brand {
@@ -1720,7 +1747,7 @@ button:active {
 }
 .daily-reward {
   position: fixed;
-  z-index: 100;
+  z-index: var(--z-toast);
   right: 22px;
   top: 104px;
   display: flex;

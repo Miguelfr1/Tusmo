@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState } from "react";
+import { createElement, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -29,6 +29,7 @@ import {
   getStats,
   officialCard,
 } from "../data/adventure.js";
+import useScrollEdges from "../hooks/useScrollEdges";
 import BoosterOpening from "./BoosterOpening";
 import { Brand } from "./Experience";
 import { CoinBadge } from "./PokeCoins";
@@ -306,13 +307,19 @@ function Quests({ wallet, claimQuest, notify }) {
             <div>
               <h3>{q.title}</h3>
               <p>{q.description}</p>
-              <progress aria-label={q.title} value={q.value} max={q.target} />
+              <progress
+                aria-label={q.title}
+                className={q.value >= q.target ? "is-complete" : undefined}
+                value={q.value}
+                max={q.target}
+              />
               <small>
                 {q.value} / {q.target}
               </small>
             </div>
             <button
               className="secondary-button"
+              data-cost={!q.claimed && q.value >= q.target ? "" : undefined}
               disabled={q.claimed || q.value < q.target}
               onClick={() => {
                 if (claimQuest(q.id)) notify(`+${q.reward} PokéCoins !`);
@@ -470,9 +477,45 @@ function Challenges({ adventure, onStart, onClassic }) {
   );
 }
 
+/* Dépenser 300 pièces d un seul geste, sans retour possible, mérite la même
+   confirmation que le booster. */
+function ConfirmPurchase({ item, coins, cancel, confirm }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="rules-dialog confirm-dialog"
+      aria-labelledby="confirm-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        cancel();
+      }}
+    >
+      <h2 id="confirm-title">{item.name}</h2>
+      <p>
+        Cet objet coûte <strong>{item.price} PokéCoins</strong>. Il te restera{" "}
+        <strong>{coins - item.price}</strong> pièces, et il sera équipé
+        aussitôt.
+      </p>
+      <button autoFocus className="primary-button" onClick={confirm}>
+        Acheter et équiper
+      </button>
+      <button className="text-button" onClick={cancel}>
+        Garder mes pièces
+      </button>
+    </dialog>
+  );
+}
+
 function Shop({ wallet, buyCosmetic, openPack, notify }) {
   const [pack, setPack] = useState(null);
   const [confirmPack, setConfirmPack] = useState(false);
+  const [confirmItem, setConfirmItem] = useState(null);
   const purchasePack = () => {
     const pool = [...pokemon];
     const picks = Array.from(
@@ -491,16 +534,25 @@ function Shop({ wallet, buyCosmetic, openPack, notify }) {
   const visiblePack = wallet.adventure.lastPack;
   return (
     <section>
+      {confirmItem && (
+        <ConfirmPurchase
+          item={confirmItem}
+          coins={wallet.coins}
+          cancel={() => setConfirmItem(null)}
+          confirm={() => {
+            if (buyCosmetic(confirmItem.id))
+              notify(`${confirmItem.name} acheté et équipé !`);
+            setConfirmItem(null);
+          }}
+        />
+      )}
       <div className="booster-banner">
-        <div className="booster-foil" aria-hidden="true">
-          <Sparkles />
-          <b>TUSMO</b>
-          <span>
-            TRÉSORS
-            <br />
-            POKÉMON
-          </span>
-          <small>3 ILLUSTRATIONS</small>
+        <div className="booster-mini" aria-hidden="true">
+          <span className="booster-mini-crimp" data-edge="top" />
+          <span className="booster-mini-wordmark">Pokémon</span>
+          <img src="/images/pokemon/25.png" alt="" />
+          <span className="booster-mini-count">3 CARTES</span>
+          <span className="booster-mini-crimp" data-edge="bottom" />
         </div>
         <div>
           <h2>Une surprise à déballer.</h2>
@@ -621,9 +673,12 @@ function Shop({ wallet, buyCosmetic, openPack, notify }) {
                     </div>
                     <button
                       className="secondary-button"
+                      data-cost={!owned || undefined}
                       disabled={equipped || (!owned && wallet.coins < c.price)}
                       onClick={() => {
-                        if (buyCosmetic(c.id)) notify(`${c.name} équipé !`);
+                        if (owned) {
+                          if (buyCosmetic(c.id)) notify(`${c.name} équipé !`);
+                        } else setConfirmItem(c);
                       }}
                     >
                       {equipped ? (
@@ -633,7 +688,7 @@ function Shop({ wallet, buyCosmetic, openPack, notify }) {
                       ) : owned ? (
                         "Équiper"
                       ) : (
-                        "Acheter"
+                        `Acheter · ${c.price}`
                       )}
                     </button>
                   </article>
@@ -725,6 +780,7 @@ export default function Adventure({
 }) {
   const [tab, setTab] = useState("play");
   const [notice, setNotice] = useState("");
+  const { attach: attachTabs, shellProps: tabShellProps } = useScrollEdges();
   const props = {
     wallet,
     adventure: wallet.adventure,
@@ -759,21 +815,27 @@ export default function Adventure({
             <small>rencontres</small>
           </span>
         </div>
-        <nav className="adventure-tabs" aria-label="Carnet du Dresseur">
-          {tabs.map(([id, label, Icon]) => (
-            <button
-              key={id}
-              aria-current={tab === id ? "page" : undefined}
-              onClick={() => {
-                setTab(id);
-                setNotice("");
-              }}
-            >
-              {createElement(Icon, { size: 18 })}
-              {label}
-            </button>
-          ))}
-        </nav>
+        <div {...tabShellProps}>
+          <nav
+            ref={attachTabs}
+            className="adventure-tabs scroll-strip"
+            aria-label="Carnet du Dresseur"
+          >
+            {tabs.map(([id, label, Icon]) => (
+              <button
+                key={id}
+                aria-current={tab === id ? "page" : undefined}
+                onClick={() => {
+                  setTab(id);
+                  setNotice("");
+                }}
+              >
+                {createElement(Icon, { size: 18 })}
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
         {saveError && (
           <p role="alert" className="adventure-notice">
             La sauvegarde locale est indisponible. Ne ferme pas cette page : ta

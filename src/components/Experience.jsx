@@ -230,7 +230,6 @@ export function Landing({
                 <span className="mode-icon">
                   <Flame />
                 </span>
-                <span className="mode-index">02</span>
               </span>
               <h3>
                 La suite infinie<span>Ne perds pas le fil.</span>
@@ -254,7 +253,6 @@ export function Landing({
                 <span className="mode-icon">
                   <Users />
                 </span>
-                <span className="mode-index">03</span>
               </span>
               <h3>
                 Entre amis

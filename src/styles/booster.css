@@ -134,132 +134,256 @@
   perspective: 1400px;
 }
 
-/* --- Le pack ------------------------------------------------------------ */
+/* --- Le sachet ----------------------------------------------------------
+   Anatomie d un vrai sachet Pokémon, reprise pièce par pièce : un tube de
+   mylar au format 63x110, deux soudures crantées en haut et en bas, les plis
+   du tube qui assombrissent les bords, le logo du set, une illustration
+   vedette qui déborde, la mention du contenu, et un foil qui suit le curseur.
+   ------------------------------------------------------------------------ */
 
 .booster-pack-zone {
   position: relative;
   display: grid;
   place-items: center;
   animation: pack-drop 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  perspective: 900px;
 }
 .booster-pack {
   --tear: 0;
+  --px: 0.5;
+  --py: 0.5;
   position: relative;
-  width: 216px;
-  height: 310px;
+  width: 208px;
+  height: 364px;
   touch-action: none;
   cursor: grab;
-  filter: drop-shadow(0 30px 40px #00000073);
-  animation: pack-float 5.5s ease-in-out infinite;
-  transform: rotate(calc(var(--tear) * 7deg))
-    translateX(calc(var(--tear) * 14px));
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 26px 30px #00000080);
+  animation: pack-float 6s ease-in-out infinite;
 }
 .booster-pack[data-ready]:active {
   cursor: grabbing;
 }
-.booster-pack-body {
+/* L inclinaison suit le pointeur : c est ce qui donne le poids du mylar. */
+.booster-pack-tilt {
   position: absolute;
-  inset: 34px 0 0;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(calc((var(--px) - 0.5) * 17deg))
+    rotateX(calc((0.5 - var(--py)) * 13deg))
+    rotate(calc(var(--tear) * 7deg))
+    translateX(calc(var(--tear) * 16px));
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Le corps du sachet. Le haut est droit tant que le sceau tient ; il devient
+   déchiqueté à mesure que --tear monte. */
+.booster-pack-tube {
+  position: absolute;
+  inset: 22px 0 18px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 22px 16px;
-  border-radius: 3px 3px 7px 7px;
-  color: var(--gold-soft);
-  text-align: center;
   background:
-    linear-gradient(157deg, #2a4d37 0%, #6d9a76 34%, #dbe7b4 44%, #35573f 55%, #14261f 100%);
-  /* Bord déchiré : le zigzag n apparaît qu une fois le sceau parti. */
+    /* plis du tube : bords sombres, arête lumineuse, ventre coloré */
+    linear-gradient(
+      90deg,
+      #04120b 0 3%,
+      #0a2416 6%,
+      #123f27 13%,
+      #0f5c39 34%,
+      #0c7048 50%,
+      #0e5537 66%,
+      #0a2c1c 88%,
+      #04120b 97% 100%
+    );
   clip-path: polygon(
-    0 calc(var(--tear) * 9px),
-    8% calc(var(--tear) * 2px),
-    17% calc(var(--tear) * 11px),
-    26% calc(var(--tear) * 3px),
-    35% calc(var(--tear) * 13px),
-    44% calc(var(--tear) * 4px),
-    53% calc(var(--tear) * 12px),
-    62% calc(var(--tear) * 2px),
-    71% calc(var(--tear) * 10px),
-    80% calc(var(--tear) * 3px),
-    89% calc(var(--tear) * 12px),
-    100% calc(var(--tear) * 5px),
+    0 calc(var(--tear) * 10px),
+    7% calc(var(--tear) * 2px),
+    15% calc(var(--tear) * 13px),
+    23% calc(var(--tear) * 4px),
+    31% calc(var(--tear) * 15px),
+    39% calc(var(--tear) * 3px),
+    47% calc(var(--tear) * 14px),
+    55% calc(var(--tear) * 5px),
+    63% calc(var(--tear) * 16px),
+    71% calc(var(--tear) * 3px),
+    79% calc(var(--tear) * 13px),
+    87% calc(var(--tear) * 6px),
+    95% calc(var(--tear) * 12px),
+    100% calc(var(--tear) * 4px),
     100% 100%,
     0 100%
   );
 }
-.booster-pack-body b {
-  font-size: 11px;
-  letter-spacing: 0.34em;
-  opacity: 0.85;
-}
-.booster-pack-body strong {
-  font: 1000 27px/1.1 Nunito, sans-serif;
-  letter-spacing: 0.02em;
-  text-shadow: 0 2px 0 #0000003d;
-}
-.booster-pack-body small {
-  font-size: 8px;
-  letter-spacing: 0.3em;
-  color: #fff6d4;
-  text-shadow: 0 1px 2px #00000059;
-}
-.booster-pack-mark {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 2px solid #ffe6a866;
-  color: var(--gold-soft);
-}
-/* Le reflet qui balaie l aluminium. */
-.booster-pack-shine {
+/* L illustration vedette, cadrée large et coupée par le sachet. */
+.booster-pack-tube > .booster-pack-folds {
   position: absolute;
-  inset: -40% -120%;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 8%, #ffffff2e 10%, transparent 12%),
+    linear-gradient(270deg, transparent 8%, #ffffff24 10.5%, transparent 13%);
+}
+.booster-pack-art {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 172%;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  filter: drop-shadow(0 10px 14px #00000066);
+  pointer-events: none;
+  user-select: none;
+}
+/* Halo derrière la vedette : un vrai sachet éclaire son personnage. */
+.booster-pack-tube::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 250px;
+  height: 250px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, #cdf5a366 0%, #2f9d5c33 40%, transparent 68%);
+}
+/* Le gabarit d un sachet réel : le logo en haut, l illustration au centre,
+   la mention du contenu en bas. Rien d autre n y figure.
+   Habillage de fan : le site est déjà construit sur les noms, les
+   illustrations et les cartes Pokémon. */
+.booster-wordmark {
+  position: absolute;
+  inset: 15px 0 auto;
+  text-align: center;
+  font: 1000 33px/1 Nunito, sans-serif;
+  letter-spacing: -0.01em;
+  color: #ffcb05;
+  -webkit-text-stroke: 5px #2a75bb;
+  paint-order: stroke fill;
+  text-shadow:
+    0 3px 0 #1b4f80,
+    0 5px 7px #0000005e;
+  transform: skewX(-7deg) rotate(-1.5deg);
+  pointer-events: none;
+}
+.booster-pack-band {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 32px 12px 11px;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(180deg, transparent, #03100a 52%);
+}
+.booster-pack-count {
+  padding: 5px 13px;
+  border-radius: 99px;
+  border: 1px solid #e9cf8a7a;
+  background: #06170f9e;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  color: #ffeab4;
+}
+
+/* Le foil : une nappe irisée qui se déplace avec le pointeur, et un éclat
+   diagonal qui balaie le sachet en continu. */
+.booster-pack-foil {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: overlay;
+  opacity: 0.42;
+  background: conic-gradient(
+    from calc(var(--px) * 360deg),
+    #ff8fd8,
+    #ffd977,
+    #7fe7d5,
+    #8fb6ff,
+    #ff8fd8
+  );
+}
+.booster-pack-gloss {
+  position: absolute;
+  inset: -40% -130%;
+  mix-blend-mode: screen;
   background: linear-gradient(
     68deg,
-    transparent 38%,
-    #ffffffb0 47%,
-    #fff9d9d9 50%,
-    transparent 60%
+    transparent 43%,
+    #ffffff54 48%,
+    #fffdf094 50%,
+    transparent 56%
   );
-  animation: pack-sheen 3.6s ease-in-out infinite;
-  mix-blend-mode: screen;
+  animation: pack-sheen 4.2s ease-in-out infinite;
 }
-/* Le sceau cranté du haut, celui qu on arrache. */
-.booster-pack-seal {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border-radius: 7px 7px 2px 2px;
-  background: linear-gradient(180deg, #d9c079 0%, #a98b3f 55%, #7d6528 100%);
-  box-shadow: inset 0 -2px 4px #00000038;
-  transform: translate(calc(var(--tear) * 190px), calc(var(--tear) * -70px))
-    rotate(calc(var(--tear) * 34deg));
-  opacity: calc(1 - var(--tear) * 0.9);
-  transition: transform 0.12s linear, opacity 0.12s linear;
-}
-.booster-pack-seal i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #6a5620;
-  opacity: 0.55;
-}
-.booster-pack[data-ready] .booster-pack-seal::after {
+/* Le grain du mylar : sans lui, l aplat fait plastique. */
+.booster-pack-tube::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(90deg, transparent, #fffbe6a1, transparent);
-  animation: seal-hint 2.2s ease-in-out infinite;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Les deux soudures crantées. Celle du bas est fixe, celle du haut s arrache. */
+.booster-crimp {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: linear-gradient(
+    180deg,
+    #f6e7bb 0%,
+    #d3b972 22%,
+    #9a8140 58%,
+    #6a5628 100%
+  );
+}
+.booster-crimp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    #0000001f 0 1px,
+    #ffffff1a 1px 2px,
+    transparent 2px 4px
+  );
+}
+.booster-crimp[data-edge="bottom"] {
+  bottom: 0;
+  --tooth: 11px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / var(--tooth) 100% repeat-x;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / var(--tooth) 100% repeat-x;
+}
+.booster-crimp[data-edge="top"] {
+  top: 0;
+  --tooth: 11px;
+  -webkit-mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / var(--tooth) 100% repeat-x;
+  mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / var(--tooth) 100% repeat-x;
+  transform: translate(calc(var(--tear) * 210px), calc(var(--tear) * -78px))
+    rotate(calc(var(--tear) * 38deg));
+  opacity: calc(1 - var(--tear) * 0.92);
+  transition:
+    transform 0.12s linear,
+    opacity 0.12s linear;
+}
+/* Le trou d accroche, comme sur les sachets vendus en présentoir. */
+.booster-crimp[data-edge="top"]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 26px;
+  height: 10px;
+  transform: translateX(-50%);
+  border-radius: 99px;
+  background: #04120c;
+  box-shadow: inset 0 1px 2px #000000a8;
+}
+/* Un liseré doré parcourt la soudure quand le sachet est prêt à s ouvrir. */
+.booster-pack[data-ready] .booster-crimp[data-edge="top"] {
+  animation: seal-hint 2.4s ease-in-out infinite;
 }
 
 /* L onde de choc au moment de la déchirure. */
@@ -795,5 +919,97 @@
   }
   [data-phase="tearing"] .booster-pack {
     opacity: 0;
+  }
+}
+
+/* --- La vignette de la boutique ------------------------------------------
+   Le même sachet, en réduction, pour que la boutique annonce ce qu on ouvre.
+   ------------------------------------------------------------------------ */
+
+.booster-mini {
+  position: relative;
+  width: 132px;
+  height: 214px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 2px;
+  transform: rotate(-6deg);
+  box-shadow: 8px 12px 18px #24452a2e;
+  background: linear-gradient(
+    90deg,
+    #04120b 0 3%,
+    #0a2416 6%,
+    #123f27 13%,
+    #0f5c39 34%,
+    #0c7048 50%,
+    #0e5537 66%,
+    #0a2c1c 88%,
+    #04120b 97% 100%
+  );
+}
+.booster-mini-wordmark {
+  position: absolute;
+  inset: 24px 0 auto;
+  text-align: center;
+  font: 1000 20px/1 Nunito, sans-serif;
+  color: #ffcb05;
+  -webkit-text-stroke: 3px #2a75bb;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 #1b4f80;
+  transform: skewX(-7deg) rotate(-1.5deg);
+}
+.booster-mini img {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 118%;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 8px #00000059);
+}
+.booster-mini-count {
+  position: absolute;
+  inset: auto 0 26px;
+  text-align: center;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: #ffeab4;
+  text-shadow: 0 1px 3px #000000b3;
+}
+.booster-mini-crimp {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 17px;
+  background: linear-gradient(180deg, #f6e7bb, #d3b972 22%, #9a8140 58%, #6a5628);
+}
+.booster-mini-crimp[data-edge="top"] {
+  top: 0;
+  -webkit-mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / 8px 100% repeat-x;
+  mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / 8px 100% repeat-x;
+}
+.booster-mini-crimp[data-edge="bottom"] {
+  bottom: 0;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / 8px 100% repeat-x;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / 8px 100% repeat-x;
+}
+@media (max-width: 700px) {
+  .booster-mini {
+    width: 92px;
+    height: 150px;
+    margin-top: 10px;
+  }
+  .booster-mini-wordmark {
+    inset: 18px 0 auto;
+    font-size: 14px;
+    -webkit-text-stroke-width: 2px;
+  }
+  .booster-mini-count {
+    inset: auto 0 20px;
+    font-size: 5px;
   }
 }
