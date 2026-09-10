@@ -109,6 +109,10 @@ export function pokemonImage(id) {
   return `${prefix}/api/pokemon?id=${id}`;
 }
 
+export function cardImage(url) {
+  return `${prefix}/api/card-image?url=${encodeURIComponent(url)}`;
+}
+
 export function resultText(round) {
   return `Tus’Mon · ${round.day}\n${round.status === "won" ? round.rows.length : "X"}/6\n${round.rows.map((row) => row.marks.map((mark) => ({ correct: "🟩", present: "🟨", absent: "⬛" })[mark]).join("")).join("\n")}\n/tusmon`;
 }

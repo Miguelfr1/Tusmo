@@ -635,6 +635,18 @@
     0 0 0 5px #eddb9c,
     0 16px 30px #77602126;
 }
+.tm-art.is-loading::before {
+  content: "";
+  width: 42px;
+  height: 42px;
+  border: 3px solid #d8dfd0;
+  border-top-color: var(--tm-green);
+  border-radius: 50%;
+  animation: tm-spin 0.8s linear infinite;
+}
+.tm-art.is-empty {
+  display: none;
+}
 .tm-result > small {
   display: block;
   font-size: 9px;
@@ -691,6 +703,11 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+@keyframes tm-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 @media (max-width: 720px) {

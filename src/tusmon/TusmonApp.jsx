@@ -11,7 +11,13 @@ import "./tusmon.css";
 import useDailyGame from "./useDailyGame.js";
 import TusmonBoard from "./TusmonBoard.jsx";
 import TusmonLeaderboard from "./TusmonLeaderboard.jsx";
-import { demo, embedded, pokemonImage, resultText } from "./discord.js";
+import {
+  cardImage,
+  demo,
+  embedded,
+  requestApi,
+  resultText,
+} from "./discord.js";
 const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
   day: "numeric",
@@ -19,9 +25,23 @@ const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 }).format(new Date());
 
-function Result({ round }) {
+function Result({ round, connection }) {
+  const [card, setCard] = useState(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const [share, setShare] = useState("");
   const [showText, setShowText] = useState(false);
+  useEffect(() => {
+    if (round.status !== "won") return;
+    const controller = new AbortController();
+    requestApi("card", connection.session, null, { signal: controller.signal })
+      .then((result) => {
+        setCard(
+          result.day === round.day && result.card?.id ? result.card : false,
+        );
+      })
+      .catch(() => setCard(false));
+    return () => controller.abort();
+  }, [connection.session, round.day, round.status]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(resultText(round));
@@ -40,12 +60,16 @@ function Result({ round }) {
       <p>
         <strong>{round.solution.name}</strong> · {round.status === "won" ? round.rows.length : "X"}/6
       </p>
-      <div className="tm-art">
-        <img
-          src={pokemonImage(round.solution.id)}
-          alt={round.solution.name}
-          onError={(event) => event.currentTarget.remove()}
-        />
+      <div
+        className={`tm-art ${card && !imageFailed ? "is-card" : card === null ? "is-loading" : "is-empty"}`}
+      >
+        {card && !imageFailed && (
+          <img
+            src={cardImage(card.image)}
+            alt={`Carte ${round.solution.name}`}
+            onError={() => setImageFailed(true)}
+          />
+        )}
       </div>
       <button className="tm-primary" onClick={copy}>
         <Share2 size={17} /> Partager
@@ -209,7 +233,11 @@ export default function TusmonApp() {
                 disabled={blocked}
               />
               {round.status !== "playing" && (
-                <Result key={round.day} round={round} />
+                <Result
+                  key={round.day}
+                  round={round}
+                  connection={game.connection}
+                />
               )}
               <Countdown
                 key={`${round.day}:${round.revision}`}
