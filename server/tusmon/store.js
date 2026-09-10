@@ -22,8 +22,13 @@ const gameKey = (day, id) => `tusmon:v1:game:${day}:${id}`;
 const profileKey = (id) => `tusmon:v1:profile:${id}`;
 const boardKey = (day, scope) => `tusmon:v1:board:${day}:${scope}`;
 // Where the interaction that opened the activity is parked, so the result can
-// be posted from that interaction instead of from a bot in the server.
-const launchKey = (id) => `tusmon:v1:launch:${id}`;
+// be posted from that interaction instead of from a bot in the server. It is
+// kept per channel: everyone playing the same instance shares one card.
+const launchKey = (channelId) => `tusmon:v1:launch:${channelId}`;
+// Everyone who finished the day's Pokémon in that channel, so the card can
+// show them all rather than only whoever posted last.
+const resultsKey = (day, channelId) =>
+  `tusmon:v1:results:${day}:${channelId}`;
 
 export function createRedisStore({ url, token }) {
   if (!url || !token || !url.startsWith("https://"))
@@ -108,18 +113,29 @@ export function createRedisStore({ url, token }) {
         total: await command(["ZCARD", key]),
       };
     },
-    async rememberLaunch(id, launch, seconds) {
+    async rememberLaunch(channelId, launch, seconds) {
       await command([
         "SET",
-        launchKey(id),
+        launchKey(channelId),
         JSON.stringify(launch),
         "EX",
         seconds,
       ]);
     },
-    async recallLaunch(id) {
-      const raw = await command(["GET", launchKey(id)]);
+    async recallLaunch(channelId) {
+      const raw = await command(["GET", launchKey(channelId)]);
       return raw ? JSON.parse(raw) : null;
+    },
+    async saveResult(day, channelId, id, player, seconds) {
+      const key = resultsKey(day, channelId);
+      await command(["HSET", key, id, JSON.stringify(player)]);
+      await command(["EXPIRE", key, seconds]);
+    },
+    async results(day, channelId) {
+      const flat = await command(["HGETALL", resultsKey(day, channelId)]);
+      const players = [];
+      for (let i = 1; i < flat.length; i += 2) players.push(JSON.parse(flat[i]));
+      return players.sort((a, b) => a.at - b.at);
     },
     async limit(key, max, seconds = 60) {
       return (
@@ -141,6 +157,7 @@ export function createMemoryStore() {
     profiles = new Map(),
     boards = new Map(),
     launches = new Map(),
+    results = new Map(),
     limits = new Map();
   return {
     async read(day, id) {
@@ -185,12 +202,22 @@ export function createMemoryStore() {
           : null,
       };
     },
-    async rememberLaunch(id, launch, seconds) {
-      launches.set(id, { launch, until: Date.now() + seconds * 1000 });
+    async rememberLaunch(channelId, launch, seconds) {
+      launches.set(channelId, { launch, until: Date.now() + seconds * 1000 });
     },
-    async recallLaunch(id) {
-      const entry = launches.get(id);
+    async recallLaunch(channelId) {
+      const entry = launches.get(channelId);
       return entry && entry.until > Date.now() ? entry.launch : null;
+    },
+    async saveResult(day, channelId, id, player) {
+      const key = `${day}:${channelId}`;
+      if (!results.has(key)) results.set(key, new Map());
+      results.get(key).set(id, player);
+    },
+    async results(day, channelId) {
+      return [...(results.get(`${day}:${channelId}`)?.values() || [])].sort(
+        (a, b) => a.at - b.at,
+      );
     },
     async limit(key, max, seconds = 60) {
       const old = limits.get(key);

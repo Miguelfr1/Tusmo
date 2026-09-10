@@ -99,8 +99,10 @@ export function connectDiscord({ reconnect = false } = {}) {
   return connection;
 }
 
+const channelId = new URLSearchParams(window.location.search).get("channel_id");
+
 export function canShareMoment() {
-  return embedded;
+  return Boolean(embedded && channelId);
 }
 
 function toBase64(blob) {
@@ -112,27 +114,28 @@ function toBase64(blob) {
   });
 }
 
-/**
- * Hands the result card to the app, which publishes it through the /tusmon
- * interaction. Nothing is sent from the player's account, and no dialog opens.
- */
-export async function shareMoment(blob, session, round) {
-  if (!canShareMoment()) throw new Error("Le partage Discord n’est pas prêt.");
+async function shareApi(body) {
   const response = await fetch(`${prefix}/api/tusmon-share`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      session,
-      round: {
-        number: round.number,
-        status: round.status,
-        attempts: round.rows.length,
-      },
-      image: await toBase64(blob),
-    }),
+    body: JSON.stringify({ channelId, ...body }),
     signal: AbortSignal.timeout(20000),
   });
   if (!response.ok) throw new Error("Le résultat n’a pas pu être publié.");
+  return response.json();
+}
+
+/** Registers this result and returns everyone who played today in the channel. */
+export function collectResults(session, player) {
+  return shareApi({ session, player });
+}
+
+/**
+ * Hands the card to the app, which publishes it through the /tusmon
+ * interaction. Nothing is sent from the player's account, and no dialog opens.
+ */
+export async function shareMoment(blob, session) {
+  await shareApi({ session, image: await toBase64(blob) });
 }
 
 export function imageUrl(url) {

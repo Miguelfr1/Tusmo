@@ -9,6 +9,7 @@ import TusmonBoard from "./TusmonBoard.jsx";
 import TusmonLeaderboard from "./TusmonLeaderboard.jsx";
 import {
   canShareMoment,
+  collectResults,
   cardImage,
   pokemonImage,
   demo,
@@ -17,7 +18,7 @@ import {
   resultText,
   shareMoment,
 } from "./discord.js";
-import { renderShareCard } from "./shareCard.js";
+import { packMarks, renderShareCard } from "./shareCard.js";
 const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
   day: "numeric",
@@ -49,9 +50,15 @@ function Result({ round, connection, stats, playedThisSession }) {
     posted.current = true;
     (async () => {
       try {
-        const blob = await renderShareCard({ round, user: connection.user });
+        const { players } = await collectResults(connection.session, {
+          avatar: connection.user.avatar,
+          status: round.status,
+          length: round.length,
+          marks: packMarks(round.rows),
+        });
+        const blob = await renderShareCard({ number: round.number, players });
         if (!blob) return;
-        await shareMoment(blob, connection.session, round);
+        await shareMoment(blob, connection.session);
       } catch {
         // The Partager button stays as the manual fallback.
       }

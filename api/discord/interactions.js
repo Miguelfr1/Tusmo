@@ -33,8 +33,7 @@ export async function POST(request) {
       (interaction.type === 2 && interaction.data?.name === "tusmon") ||
       (interaction.type === 3 && interaction.data?.custom_id === PLAY_BUTTON);
     if (launching) {
-      const userId = (interaction.member?.user || interaction.user)?.id;
-      if (userId)
+      if (interaction.channel_id)
         try {
           const store = createRedisStore({
             url:
@@ -44,8 +43,8 @@ export async function POST(request) {
               process.env.KV_REST_API_TOKEN,
           });
           await store.rememberLaunch(
-            userId,
-            { token: interaction.token, channelId: interaction.channel_id },
+            interaction.channel_id,
+            { token: interaction.token, guildId: interaction.guild_id || null },
             LAUNCH_TTL,
           );
         } catch {
