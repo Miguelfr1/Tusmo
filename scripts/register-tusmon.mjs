@@ -20,7 +20,7 @@ const response = await fetch(url, {
     description:
       "Le Pokémon du jour : 9 générations, 6 essais, un défi pour tout le monde.",
     type: 1,
-    ...(guild ? {} : { contexts: [0, 1, 2], integration_types: [0] }),
+    ...(guild ? {} : { contexts: [0, 1, 2], integration_types: [0, 1] }),
   }),
   signal: AbortSignal.timeout(15000),
 });
