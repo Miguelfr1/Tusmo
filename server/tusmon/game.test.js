@@ -41,6 +41,19 @@ const action = (type, revision = 0, extra = {}) => ({
 const pokemon = JSON.parse(
   readFileSync(new URL("../../src/data/pokemon.json", import.meta.url), "utf8"),
 );
+const frenchWords = readFileSync(
+  new URL("../../public/mots/tous-v1.txt", import.meta.url),
+  "utf8",
+).split(/\s+/);
+const wrongFrenchWord = (answer) => {
+  const solution = normalize(answer);
+  return frenchWords.find(
+    (word) =>
+      word.length === solution.length &&
+      word[0] === solution[0] &&
+      word !== solution,
+  );
+};
 
 test("all 1025 species can be selected deterministically; secret required", () => {
   assert.equal(pokemon.length, 1025);
@@ -84,8 +97,8 @@ test("public state conceals species until completion and rejects invalid guesses
   const round = newRound(day, user);
   const visible = publicRound(round, target, now);
   assert.equal(visible.solution, null);
-  assert.equal(visible.types, null);
-  assert.equal(visible.region, null);
+  assert.equal("types" in visible, false);
+  assert.equal("reward" in visible, false);
   assert.throws(() =>
     applyAction(round, action("guess", 0, { guess: "UNKNOWN" }), target, now),
   );
@@ -94,35 +107,28 @@ test("public state conceals species until completion and rejects invalid guesses
     applyAction(round, action("hint", 0, { day: "2026-09-09" }), target, now),
   );
 });
-test("wallet awards once and hints charge 8/12/20 exactly once", () => {
-  let round = newRound(day, user),
-    wallet = dailyWallet(null, day);
-  assert.equal(wallet.coins, 130);
-  assert.equal(dailyWallet(wallet, day).coins, 130);
-  for (let i = 0; i < 3; i++) {
-    const command = action("hint", i),
-      after = applyAction(round, command, target, now);
-    ({ round, wallet } = settleWallet(wallet, round, after, command));
-    const retry = applyAction(round, command, target, now);
-    assert.equal(retry, round);
-    assert.equal(
-      settleWallet(wallet, round, retry, command).wallet.coins,
-      wallet.coins,
-    );
-  }
-  assert.equal(wallet.coins, 90);
-  assert.throws(() => applyAction(round, action("hint", 3), target, now));
-  assert.equal(publicRound(round, target, now).silhouette, true);
-  const command = action("guess", 3, { guess: target.name });
-  ({ round, wallet } = settleWallet(
-    wallet,
+test("French words are accepted; hints and currency are absent", () => {
+  const pikachu = pokemon.find((p) => p.name === "Pikachu");
+  let round = newRound(day, user);
+  round = applyAction(
     round,
-    applyAction(round, command, target, now),
-    command,
+    action("guess", 0, { guess: "PARFAIT" }),
+    pikachu,
+    now,
+  );
+  assert.deepEqual(round.guesses, ["PARFAIT"]);
+  assert.throws(() => applyAction(round, action("hint", 1), pikachu, now));
+  const profile = dailyWallet(null);
+  assert.equal("coins" in profile, false);
+  const command = action("guess", 1, { guess: pikachu.name });
+  ({ round } = settleWallet(
+    profile,
+    round,
+    applyAction(round, command, pikachu, now),
   ));
   assert.equal(round.status, "won");
-  assert.equal(wallet.coins, 214);
-  assert.equal(publicRound(round, target, now).solution.id, target.id);
+  assert.equal("reward" in round, false);
+  assert.equal(publicRound(round, pikachu, now).solution.id, pikachu.id);
   assert.equal(applyAction(round, command, target, now), round);
   assert.throws(() =>
     applyAction(round, action("guess", 4, { guess: target.name }), target, now),
@@ -227,17 +233,22 @@ function fixture() {
 test("API retry is idempotent; two concurrent windows cannot spend twice", async () => {
   const { call } = fixture();
   await call("state");
+  const guess = wrongFrenchWord(target.name);
+  const commands = [
+    action("guess", 0, { guess }),
+    action("guess", 0, { guess, requestId: "different-id" }),
+  ];
   const results = await Promise.all([
-    call("play", action("hint")),
-    call("play", action("hint", 0, { requestId: "different-id" })),
+    call("play", commands[0]),
+    call("play", commands[1]),
   ]);
   assert.deepEqual(results.map((r) => r.status).sort(), [200, 409]);
   const saved = await call("state");
-  assert.equal(saved.data.wallet.coins, 122);
-  assert.equal(saved.data.round.hints, 1);
-  const retry = await call("play", action("hint"));
+  assert.equal(saved.data.round.rows.length, 1);
+  assert.equal("wallet" in saved.data, false);
+  const retry = await call("play", commands[results.findIndex((r) => r.status === 200)]);
   assert.equal(retry.status, 200);
-  assert.equal(retry.data.wallet.coins, 122);
+  assert.equal(retry.data.round.rows.length, 1);
 });
 test("same challenge across accounts, no answer in leaderboard, no replay across servers", async () => {
   const { call } = fixture();
@@ -245,7 +256,7 @@ test("same challenge across accounts, no answer in leaderboard, no replay across
     b = await call("state", null, { ...user, id: "100000000000000003" });
   assert.deepEqual(a.data.round, b.data.round);
   assert.equal((await call("card")).status, 403);
-  assert.equal((await call("silhouette")).status, 403);
+  assert.equal((await call("silhouette")).status, 404);
   const won = await call(
     "play",
     action("guess", 0, { guess: target.name, userId: "spoofed" }),
@@ -274,17 +285,17 @@ test("same challenge across accounts, no answer in leaderboard, no replay across
     400,
   );
 });
-test("new day permits one new game and awards daily coins once", async () => {
+test("new day permits one new game without exposing currency", async () => {
   const { call, advance } = fixture();
   await call("state");
   await call("play", action("guess", 0, { guess: target.name }));
-  const saved = await call("state");
+  await call("state");
   advance(new Date("2026-09-11T10:00:00Z"));
   const next = await call("state");
   assert.equal(next.data.round.status, "playing");
   assert.equal(next.data.round.rows.length, 0);
-  assert.equal(next.data.wallet.coins, saved.data.wallet.coins + 30);
-  assert.equal((await call("state")).data.wallet.coins, next.data.wallet.coins);
+  assert.equal("wallet" in next.data, false);
+  assert.equal("hints" in next.data.round, false);
   assert.equal((await call("play", action("hint"))).status, 409);
 });
 test("ranking ties share rank; production fails closed without persistent storage", () => {

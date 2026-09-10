@@ -164,24 +164,6 @@ export function createGameApi({
           me: board.me,
           total: board.total,
         });
-      } else if (action === "silhouette") {
-        if (round.hints < 3)
-          throw new GameError("Cet indice n’est pas encore débloqué.", 403);
-        const image = await fetch(
-          `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${target.id}.png`,
-          { signal: AbortSignal.timeout(8000) },
-        );
-        if (!image.ok)
-          throw new GameError(
-            "La silhouette ne charge pas. Réessaie sans repayer.",
-            503,
-          );
-        return new Response(image.body, {
-          headers: {
-            "Content-Type": "image/png",
-            "Cache-Control": "private, no-store",
-          },
-        });
       } else if (action === "card") {
         if (round.status !== "won")
           throw new GameError(
@@ -199,7 +181,6 @@ export function createGameApi({
         throw new GameError("Action inconnue.", 404);
       return json({
         round: publicRound(round, target, now),
-        wallet,
         user: { id: user.id, name: user.name, guildId: user.guildId },
       });
     } catch (error) {

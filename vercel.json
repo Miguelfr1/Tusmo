@@ -1,7 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [{ "source": "/tusmon", "destination": "/index.html" }],
-  "functions": { "api/**/*.js": { "includeFiles": "src/data/pokemon.json" } },
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "{src/data/pokemon.json,public/mots/tous-v1.txt}"
+    }
+  },
   "headers": [
     {
       "source": "/mots/(.*)",

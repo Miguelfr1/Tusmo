@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-  Coins,
-  Sparkles,
-  Trophy,
   Share2,
   ArrowRight,
   Clock,
-  ChevronDown,
 } from "lucide-react";
 import "@fontsource/nunito/latin-800.css";
 import "@fontsource/inter/latin-400.css";
@@ -21,53 +17,12 @@ const artwork = (id) =>
   imageUrl(
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
   );
-const prices = [8, 12, 20];
-const hints = [
-  "Révéler les types",
-  "Révéler la région",
-  "Révéler la silhouette",
-];
-
-function Silhouette({ connection }) {
-  const [url, setUrl] = useState("");
-  const [error, setError] = useState(false);
-  const [retry, setRetry] = useState(0);
-  useEffect(() => {
-    let objectUrl;
-    const controller = new AbortController();
-    requestApi("silhouette", connection.session, null, {
-      blob: true,
-      signal: controller.signal,
-    })
-      .then((blob) => {
-        if (!controller.signal.aborted) {
-          objectUrl = URL.createObjectURL(blob);
-          setUrl(objectUrl);
-          setError(false);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setError(true);
-      });
-    return () => {
-      controller.abort();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [connection, retry]);
-  return (
-    <div className="tm-silhouette">
-      {url ? (
-        <img src={url} alt="Silhouette du Pokémon à trouver" />
-      ) : error ? (
-        <button onClick={() => setRetry((n) => n + 1)}>
-          Recharger la silhouette, gratuitement
-        </button>
-      ) : (
-        <span role="status">La silhouette arrive…</span>
-      )}
-    </div>
-  );
-}
+const todayLabel = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "Europe/Paris",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+}).format(new Date());
 
 function Result({ round, connection }) {
   const [card, setCard] = useState(null);
@@ -113,12 +68,6 @@ function Result({ round, connection }) {
           ? `${round.rows.length} essai(s), bien joué.`
           : "Un nouveau Pokémon t’attend demain."}
       </p>
-      {round.reward && (
-        <div className="tm-reward">
-          <Coins size={22} /> +{round.reward.total} PokéCoins{" "}
-          <small>dont 75 de bonus quotidien</small>
-        </div>
-      )}
       <div className={`tm-art ${cardImage ? "is-card" : ""}`}>
         <img
           src={cardImage || artwork(round.solution.id)}
@@ -185,12 +134,11 @@ function Countdown({ round, refresh, busy }) {
 export default function TusmonApp() {
   const [tab, setTab] = useState("play");
   const game = useDailyGame({ keyboardEnabled: tab === "play" });
-  const [walletOpen, setWalletOpen] = useState(false);
   const round = game.data?.round;
   const blocked = game.busy || game.retryable || game.expiredSession;
   return (
     <main
-      className={`tusmon ${round?.status === "playing" && tab === "play" ? "with-keyboard" : ""}`}
+      className={`tusmon ${round ? "is-game" : ""} ${round?.status === "playing" && tab === "play" ? "with-keyboard" : ""}`}
     >
       <header className="tm-header">
         <a
@@ -202,60 +150,18 @@ export default function TusmonApp() {
           Tus’<em>Mon</em>
         </a>
         <span className="tm-daily-badge">LE DÉFI QUOTIDIEN</span>
-        {game.data && (
-          <button
-            className="tm-wallet"
-            onClick={() => setWalletOpen(!walletOpen)}
-            aria-expanded={walletOpen}
-          >
-            <Coins size={19} />
-            {game.data.wallet.coins}
-            <span className="tm-sr"> PokéCoins, détails</span>
-          </button>
-        )}
       </header>
-      {walletOpen && (
-        <aside className="tm-wallet-detail">
-          <strong>Ton portefeuille Discord</strong>
-          <p>
-            100 pièces de bienvenue, +30 à la première connexion du jour. Une
-            victoire rapporte au moins 104 pièces, avec des bonus de précision,
-            sans indice et de série de victoires.
-          </p>
-          <p>
-            Indices : types 8 · région 12 · silhouette 20. Ce portefeuille est
-            distinct de celui du site.
-          </p>
-        </aside>
-      )}
       {!round ? (
         <section className="tm-welcome">
-          <div className="tm-overline">9 GÉNÉRATIONS · 1 025 POKÉMON</div>
-          <h1>
-            Un Pokémon.
-            <br />
-            <em>Toute la communauté.</em>
+          <h1 className="tm-hero-logo">
+            <span className="tm-ball" />
+            Tus’<em>Mon</em>
           </h1>
-          <p>
-            Le Tusmo que tu connais, un rendez-vous chaque jour.
-            <br />
-            Six essais. La première lettre offerte. À toi de jouer.
-          </p>
+          <p>Devine chaque jour un Pokémon et grimpe dans le classement.</p>
           <div className="tm-mascots" aria-hidden="true">
-            {[1, 25, 906].map((id) => (
+            {[1, 25, 4].map((id) => (
               <img key={id} src={`/images/pokemon/${id}.png`} alt="" />
             ))}
-          </div>
-          <div className="tm-welcome-rules">
-            <span>
-              <Sparkles /> Les 9 générations, sans filtre
-            </span>
-            <span>
-              <Trophy /> Un classement sans spoiler
-            </span>
-            <span>
-              <Clock /> Une partie par jour et par compte
-            </span>
           </div>
           {embedded || demo ? (
             <button
@@ -263,7 +169,7 @@ export default function TusmonApp() {
               disabled={game.busy}
               onClick={game.connect}
             >
-              {game.busy ? "Connexion à Discord…" : "Jouer au Pokémon du jour"}
+              Jouer
               <ArrowRight size={19} />
             </button>
           ) : (
@@ -275,6 +181,9 @@ export default function TusmonApp() {
               </small>
             </div>
           )}
+          <p className="tm-byline">
+            {todayLabel} <span>·</span> Fait par miggs
+          </p>
           {demo && (
             <p className="tm-demo">
               Démo locale uniquement : progression temporaire, aucun compte
@@ -286,9 +195,6 @@ export default function TusmonApp() {
         <>
           <div className="tm-title">
             <div>
-              <span className="tm-overline">
-                9 GÉNÉRATIONS · MÊME POKÉMON POUR TOUS
-              </span>
               <h1>
                 Le Pokémon du jour<span>#{round.day.replaceAll("-", "")}</span>
               </h1>
@@ -329,42 +235,7 @@ export default function TusmonApp() {
                 onKey={game.onKey}
                 disabled={blocked}
               />
-              {round.status === "playing" ? (
-                <details className="tm-hints">
-                  <summary>
-                    <Sparkles size={17} /> Un petit coup de pouce ?
-                    <span>{round.hints}/3</span>
-                    <ChevronDown size={16} />
-                  </summary>
-                  <p>Chaque indice est débloqué pour toute ta partie.</p>
-                  {round.types && (
-                    <p className="tm-hint-value">
-                      Types : {round.types.join(" · ")}
-                    </p>
-                  )}
-                  {round.region && (
-                    <p className="tm-hint-value">Région : {round.region}</p>
-                  )}
-                  {round.silhouette && (
-                    <Silhouette connection={game.connection} />
-                  )}{" "}
-                  {round.hints < 3 && (
-                    <button
-                      className="tm-hint-buy"
-                      disabled={
-                        blocked || game.data.wallet.coins < prices[round.hints]
-                      }
-                      onClick={() => game.send("hint")}
-                    >
-                      {hints[round.hints]}{" "}
-                      <span>
-                        <Coins size={16} />
-                        {prices[round.hints]}
-                      </span>
-                    </button>
-                  )}
-                </details>
-              ) : (
+              {round.status !== "playing" && (
                 <Result
                   key={round.day}
                   round={round}
@@ -398,18 +269,11 @@ export default function TusmonApp() {
           )}
           {game.expiredSession && (
             <button disabled={game.busy} onClick={game.connect}>
-              Reconnecter Discord
+              Jouer
             </button>
           )}
         </div>
       )}
-      <footer className="tm-footer">
-        Tus’Mon · Un petit défi, une grande communauté.
-        <span>
-          Projet de fans non affilié à Nintendo, Game Freak ou The Pokémon
-          Company.
-        </span>
-      </footer>
     </main>
   );
 }

@@ -106,5 +106,5 @@ export function imageUrl(url) {
 }
 
 export function resultText(round) {
-  return `Tus’Mon · ${round.day}\n${round.status === "won" ? round.rows.length : "X"}/6 · ${round.hints} indice(s)\n${round.rows.map((row) => row.marks.map((mark) => ({ correct: "🟩", present: "🟨", absent: "⬛" })[mark]).join("")).join("\n")}\nLe même Pokémon pour tout le monde. À toi : /tusmon`;
+  return `Tus’Mon · ${round.day}\n${round.status === "won" ? round.rows.length : "X"}/6\n${round.rows.map((row) => row.marks.map((mark) => ({ correct: "🟩", present: "🟨", absent: "⬛" })[mark]).join("")).join("\n")}\n/tusmon`;
 }

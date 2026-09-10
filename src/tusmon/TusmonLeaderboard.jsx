@@ -42,10 +42,7 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
   return (
     <section className="tm-leaderboard" aria-labelledby="tm-board-title">
       <div className="tm-section-head">
-        <div>
-          <span className="tm-overline">LE RENDEZ-VOUS DES DRESSEURS</span>
-          <h2 id="tm-board-title">Alors, qui l’a trouvé ?</h2>
-        </div>
+        <h2 id="tm-board-title">Classement</h2>
         <button
           className="tm-icon-button"
           aria-label="Actualiser le classement"
@@ -73,9 +70,6 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
           <Users size={14} /> {data?.total || 0}
         </span>
       </div>
-      <p className="tm-ranking-rule">
-        Essais, puis indices. Les scores identiques sont ex æquo.
-      </p>
       {error && (
         <p role="alert" className="tm-error">
           {error} <button onClick={refresh}>Réessayer</button>
@@ -83,17 +77,12 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
       )}
       {loading && (
         <p role="status" className="tm-board-empty">
-          Le classement arrive…
+          Chargement…
         </p>
       )}
       {!loading && !error && !data?.rows.length && (
         <div className="tm-board-empty">
-          <Crown size={32} />
-          <strong>La première place attend son Dresseur.</strong>
-          <p>
-            Les résultats apparaissent à la fin des parties. Aucune réponse
-            n’est dévoilée.
-          </p>
+          <strong>Aucun résultat pour le moment.</strong>
         </div>
       )}
       {!!data?.rows.length && (
@@ -101,7 +90,6 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
           <div className="tm-score-header">
             <span>Rang / Dresseur</span>
             <span>Essais</span>
-            <span>Indices</span>
           </div>
           <ol className="tm-scores">
             {data.rows.map((row) => (
@@ -123,7 +111,6 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
                 <strong>
                   {row.status === "won" ? `${row.attempts}/6` : "X/6"}
                 </strong>
-                <span>{row.hints}</span>
               </li>
             ))}
           </ol>
@@ -131,8 +118,7 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
             !data.rows.some((r) => r.userId === connection.user.id) && (
               <p className="tm-your-rank">
                 Ta position : #{data.me.rank} ·{" "}
-                {data.me.status === "won" ? `${data.me.attempts}/6` : "X/6"} ·{" "}
-                {data.me.hints} indice(s)
+                {data.me.status === "won" ? `${data.me.attempts}/6` : "X/6"}
               </p>
             )}
           {data.total > 100 && (
@@ -140,10 +126,6 @@ export default function TusmonLeaderboard({ connection, day, revision }) {
           )}
         </>
       )}
-      <footer>
-        Mis à jour toutes les 30 secondes. Un seul résultat par compte, même si
-        tu changes de serveur.
-      </footer>
     </section>
   );
 }

@@ -12,22 +12,15 @@ export const normalize = (name) =>
     .replace(/♂/g, "M")
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
-const dictionary = new Set(pokemon.map((p) => normalize(p.name)));
-const boundaries = [151, 251, 386, 493, 649, 721, 809, 905, 1025];
-const regions = [
-  "Kanto",
-  "Johto",
-  "Hoenn",
-  "Sinnoh",
-  "Unys",
-  "Kalos",
-  "Alola",
-  "Galar & Hisui",
-  "Paldea",
-];
+const dictionary = new Set([
+  ...readFileSync(
+    new URL("../../public/mots/tous-v1.txt", import.meta.url),
+    "utf8",
+  ).split(/\s+/),
+  ...pokemon.map((p) => normalize(p.name)),
+]);
 export const MAX_ATTEMPTS = 6;
 export const GAME_TTL = 60 * 60 * 24 * 35;
-export const HINT_PRICES = [8, 12, 20];
 
 export class GameError extends Error {
   constructor(message, status = 400) {
@@ -95,7 +88,6 @@ export function newRound(day, user) {
     userId: user.id,
     name: user.name,
     guesses: [],
-    hints: 0,
     status: "playing",
     revision: 0,
     requests: [],
@@ -128,11 +120,7 @@ export function applyAction(round, action, target, now = new Date()) {
     revision: round.revision + 1,
     requests: [...round.requests, action.requestId],
   };
-  if (action.type === "hint") {
-    if (round.hints >= 3)
-      throw new GameError("Tous les indices sont déjà révélés.");
-    next.hints++;
-  } else if (action.type === "guess") {
+  if (action.type === "guess") {
     if (typeof action.guess !== "string" || action.guess.length > 40)
       throw new GameError("Nom de Pokémon invalide.");
     const word = normalize(action.guess);
@@ -142,7 +130,7 @@ export function applyAction(round, action, target, now = new Date()) {
     if (word[0] !== solution[0])
       throw new GameError("La première lettre est offerte : conserve-la.");
     if (!dictionary.has(word))
-      throw new GameError("Ce nom n’est pas dans le Pokédex français.");
+      throw new GameError("Ce mot n’est pas dans le dictionnaire français.");
     next.guesses.push(word);
     if (word === solution) next.status = "won";
     else if (next.guesses.length >= MAX_ATTEMPTS) next.status = "lost";
@@ -153,22 +141,16 @@ export function applyAction(round, action, target, now = new Date()) {
 
 export function publicRound(round, target, now = new Date()) {
   const solution = normalize(target.name);
-  const generation = boundaries.findIndex((end) => target.id <= end);
   return {
     day: round.day,
     status: round.status,
     revision: round.revision,
     firstLetter: solution[0],
     length: solution.length,
-    hints: round.hints,
     rows: round.guesses.map((word) => ({
       word,
       marks: evaluateGuess(word, solution),
     })),
-    types: round.hints >= 1 ? target.types : null,
-    region: round.hints >= 2 ? regions[generation] : null,
-    silhouette: round.hints >= 3,
-    reward: round.reward || null,
     solution:
       round.status === "playing"
         ? null
@@ -178,46 +160,26 @@ export function publicRound(round, target, now = new Date()) {
   };
 }
 
-export function dailyWallet(saved, day) {
-  const wallet = saved || {
-    coins: 100,
+export function dailyWallet(saved) {
+  return saved || {
     wins: 0,
     streak: 0,
     bestStreak: 0,
-    lastDaily: null,
   };
-  return wallet.lastDaily === day
-    ? wallet
-    : { ...wallet, coins: wallet.coins + 30, lastDaily: day };
 }
 
-export function settleWallet(wallet, before, after, action) {
+export function settleWallet(wallet, before, after) {
   if (before === after) return { wallet, round: after };
-  if (action.type === "hint") {
-    const cost = HINT_PRICES[before.hints];
-    if (wallet.coins < cost)
-      throw new GameError("Tu n’as pas assez de PokéCoins pour cet indice.");
-    return { wallet: { ...wallet, coins: wallet.coins - cost }, round: after };
-  }
   if (after.status === "won") {
     const streak = wallet.streak + 1;
-    const reward = {
-      base: 25,
-      precision: (7 - after.guesses.length) * 4,
-      mastery: after.hints === 0 ? 15 : 0,
-      streak: Math.min(20, (streak - 1) * 2),
-      daily: 75,
-    };
-    reward.total = Object.values(reward).reduce((a, b) => a + b, 0);
     return {
       wallet: {
         ...wallet,
-        coins: wallet.coins + reward.total,
         streak,
         bestStreak: Math.max(wallet.bestStreak, streak),
         wins: wallet.wins + 1,
       },
-      round: { ...after, reward },
+      round: after,
     };
   }
   return {
@@ -233,9 +195,7 @@ export function leaderboardEntry(round) {
     name: round.name,
     status: round.status,
     attempts: round.guesses.length,
-    hints: round.hints,
-    score:
-      (round.status === "won" ? round.guesses.length : 7) * 10 + round.hints,
+    score: round.status === "won" ? round.guesses.length : 7,
   };
 }
 
