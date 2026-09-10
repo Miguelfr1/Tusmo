@@ -7,6 +7,8 @@ import {
 import { GameError } from "./game.js";
 
 export const APPLICATION_ID = "1547555128783929396";
+// The Jouer button under a result, which opens the activity like the command.
+export const PLAY_BUTTON = "tusmon:play";
 const requireSecret = (secret) => {
   if (!secret || secret.length < 32)
     throw new GameError(

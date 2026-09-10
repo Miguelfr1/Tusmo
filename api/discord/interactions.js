@@ -1,4 +1,8 @@
-import { APPLICATION_ID, validInteraction } from "../../server/tusmon/auth.js";
+import {
+  APPLICATION_ID,
+  PLAY_BUTTON,
+  validInteraction,
+} from "../../server/tusmon/auth.js";
 import { json, readBody } from "../../server/tusmon/api.js";
 import { createRedisStore } from "../../server/tusmon/store.js";
 
@@ -25,7 +29,10 @@ export async function POST(request) {
       (process.env.DISCORD_APPLICATION_ID || APPLICATION_ID)
     )
       return json({ error: "Application invalide." }, 403);
-    if (interaction.type === 2 && interaction.data?.name === "tusmon") {
+    const launching =
+      (interaction.type === 2 && interaction.data?.name === "tusmon") ||
+      (interaction.type === 3 && interaction.data?.custom_id === PLAY_BUTTON);
+    if (launching) {
       const userId = (interaction.member?.user || interaction.user)?.id;
       if (userId)
         try {

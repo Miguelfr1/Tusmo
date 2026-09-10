@@ -1,5 +1,5 @@
 import { challengeDay, GameError } from "./game.js";
-import { readSession, APPLICATION_ID } from "./auth.js";
+import { readSession, APPLICATION_ID, PLAY_BUTTON } from "./auth.js";
 
 const DISCORD = "https://discord.com/api/v10";
 // A generous ceiling for the 560x300 result card, small enough that a forged
@@ -21,12 +21,9 @@ function resultPayload(round) {
       {
         type: 1,
         components: [
-          {
-            type: 2,
-            style: 5,
-            label: "Jouer",
-            url: `https://discord.com/activities/${APPLICATION_ID}`,
-          },
+          // Not a link: the button comes back as an interaction that answers
+          // with LAUNCH_ACTIVITY, so pressing it is the same as /tusmon.
+          { type: 2, style: 1, label: "Jouer", custom_id: PLAY_BUTTON },
         ],
       },
     ],
