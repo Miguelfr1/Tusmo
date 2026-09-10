@@ -8,9 +8,9 @@ import "./styles/booster.css";
 const isActivity =
   location.pathname === "/tusmon" ||
   new URLSearchParams(location.search).has("frame_id");
-const App = lazy(() =>
-  isActivity ? import("./tusmon/TusmonApp.jsx") : import("./App.jsx"),
-);
+const App = isActivity
+  ? lazy(() => import("./tusmon/TusmonApp.jsx"))
+  : lazy(() => import("./App.jsx"));
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
