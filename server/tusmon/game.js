@@ -40,6 +40,16 @@ export function challengeDay(date = new Date()) {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+// Tus’Mon opened on this day, so the daily challenge can carry a puzzle number
+// the way Wordle does instead of a raw date.
+const EPOCH = Date.UTC(2026, 8, 10);
+
+export function challengeNumber(day) {
+  const [year, month, date] = String(day).split("-").map(Number);
+  if (!year || !month || !date) return 0;
+  return Math.round((Date.UTC(year, month - 1, date) - EPOCH) / 86400000) + 1;
+}
+
 export function nextReset(date = new Date()) {
   const day = challengeDay(date);
   let low = date.getTime(),
@@ -143,6 +153,7 @@ export function publicRound(round, target, now = new Date()) {
   const solution = normalize(target.name);
   return {
     day: round.day,
+    number: challengeNumber(round.day),
     status: round.status,
     revision: round.revision,
     firstLetter: solution[0],

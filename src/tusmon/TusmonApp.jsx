@@ -1,9 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-  Share2,
-  ArrowRight,
-  Clock,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Share2, ArrowRight, Clock } from "lucide-react";
 import "@fontsource/nunito/latin-800.css";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-600.css";
@@ -12,13 +8,16 @@ import useDailyGame from "./useDailyGame.js";
 import TusmonBoard from "./TusmonBoard.jsx";
 import TusmonLeaderboard from "./TusmonLeaderboard.jsx";
 import {
+  canShareMoment,
   cardImage,
   pokemonImage,
   demo,
   embedded,
   requestApi,
   resultText,
+  shareMoment,
 } from "./discord.js";
+import { renderShareCard } from "./shareCard.js";
 const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
   day: "numeric",
@@ -26,7 +25,7 @@ const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 }).format(new Date());
 
-function Result({ round, connection, stats }) {
+function Result({ round, connection, stats, playedThisSession }) {
   const [card, setCard] = useState(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [share, setShare] = useState("");
@@ -43,6 +42,32 @@ function Result({ round, connection, stats }) {
       .catch(() => setCard(false));
     return () => controller.abort();
   }, [connection.session, round.day, round.status]);
+  const posted = useRef(false);
+  useEffect(() => {
+    if (posted.current || !playedThisSession.current) return;
+    if (!canShareMoment()) return;
+    const key = `tusmon:shared:${round.day}`;
+    try {
+      if (localStorage.getItem(key)) return;
+    } catch {
+      // Private browsing: better to offer the share twice than never.
+    }
+    posted.current = true;
+    (async () => {
+      try {
+        const blob = await renderShareCard({ round, user: connection.user });
+        if (!blob) return;
+        try {
+          localStorage.setItem(key, "1");
+        } catch {
+          // Ignore: the in-memory guard already covers this session.
+        }
+        await shareMoment(blob, `tusmon-${round.day}.png`);
+      } catch {
+        // The Partager button stays as the manual fallback.
+      }
+    })();
+  }, [playedThisSession, round, connection.user]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(resultText(round));
@@ -172,6 +197,12 @@ export default function TusmonApp() {
   const game = useDailyGame({ keyboardEnabled: tab === "play" });
   const round = game.data?.round;
   const blocked = game.busy || game.retryable || game.expiredSession;
+  // The result is only posted to the channel for a round finished under the
+  // player's eyes, never when they reopen an already finished one.
+  const playedThisSession = useRef(false);
+  useEffect(() => {
+    if (round?.status === "playing") playedThisSession.current = true;
+  }, [round?.status]);
   return (
     <main
       className={`tusmon ${round ? "is-game" : ""} ${round && round.status !== "playing" ? "is-finished" : ""} ${round?.status === "playing" && tab === "play" ? "with-keyboard" : ""}`}
@@ -276,6 +307,7 @@ export default function TusmonApp() {
                   round={round}
                   connection={game.connection}
                   stats={game.data?.stats}
+                  playedThisSession={playedThisSession}
                 />
               )}
               <Countdown

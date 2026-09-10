@@ -8,6 +8,7 @@ export const demo =
 const prefix = embedded ? "/.proxy" : "";
 let sdk;
 let connection;
+let accessToken = null;
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -85,13 +86,50 @@ export function connectDiscord({ reconnect = false } = {}) {
         code,
         guildId: sdk.guildId,
       });
-      await sdk.commands.authenticate({ access_token: result.access_token });
-      return { session: result.session, user: result.user };
+      const authenticated = await sdk.commands.authenticate({
+        access_token: result.access_token,
+      });
+      accessToken = result.access_token;
+      return {
+        session: result.session,
+        user: { ...result.user, avatar: authenticated.user?.avatar || null },
+      };
     })().catch((error) => {
       connection = null;
       throw error;
     });
   return connection;
+}
+
+export function canShareMoment() {
+  return Boolean(embedded && accessToken && sdk);
+}
+
+/**
+ * Posts an image to the channel through Discord's share dialog. The attachment
+ * endpoint takes the player's own bearer token, so no bot credentials are
+ * involved and the CDN link it returns is ephemeral.
+ */
+export async function shareMoment(blob, filename = "tusmon.png") {
+  if (!canShareMoment()) throw new Error("Le partage Discord n’est pas prêt.");
+  const body = new FormData();
+  body.append(
+    "file",
+    new File([blob], filename, { type: blob.type || "image/png" }),
+  );
+  const response = await fetch(
+    `https://discord.com/api/v10/applications/${APPLICATION_ID}/attachment`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body,
+      signal: AbortSignal.timeout(15000),
+    },
+  );
+  if (!response.ok) throw new Error("Discord a refusé l’image du résultat.");
+  const { attachment } = await response.json();
+  if (!attachment?.url) throw new Error("Discord n’a pas renvoyé d’image.");
+  await sdk.commands.openShareMomentDialog({ mediaUrl: attachment.url });
 }
 
 export function imageUrl(url) {

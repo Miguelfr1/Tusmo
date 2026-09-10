@@ -4,6 +4,7 @@ import { generateKeyPairSync, sign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
   challengeDay,
+  challengeNumber,
   nextReset,
   targetForDay,
   normalize,
@@ -66,6 +67,14 @@ test("all 1025 species can be selected deterministically; secret required", () =
     ),
   );
   assert.equal(ids.size, 1025);
+});
+test("the puzzle number counts days from launch and ignores clock changes", () => {
+  assert.equal(challengeNumber("2026-09-10"), 1);
+  assert.equal(challengeNumber("2026-09-11"), 2);
+  // 2026-10-25 is the autumn clock change, which must not shift the count.
+  assert.equal(challengeNumber("2026-10-26"), 47);
+  assert.equal(challengeNumber("2027-09-10"), 366);
+  assert.equal(challengeNumber("nope"), 0);
 });
 test("Paris midnight including spring and autumn clock changes", () => {
   assert.equal(challengeDay(new Date("2026-09-10T22:00:00Z")), "2026-09-11");
