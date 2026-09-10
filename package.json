@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:tusmon": "node scripts/dev-tusmon.mjs",
+    "discord:register": "node --env-file=.env.local scripts/register-tusmon.mjs",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test src/**/*.test.js",
+    "test": "node --test src/**/*.test.js server/tusmon/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@discord/embedded-app-sdk": "^2.5.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/nunito": "^5.3.0",
     "firebase": "^12.8.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
