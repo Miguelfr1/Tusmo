@@ -43,18 +43,12 @@ function board(standing, userId) {
 }
 
 /**
- * Builds the /stats reply: the day’s standings, the server’s first when the
- * command is used in one, with the same Jouer button as the result card.
+ * Builds the /stats reply: the day’s standings for this server, with the same
+ * Jouer button as the result card.
  */
-export function statsMessage({ day, guild, global, userId, playButton, now }) {
+export function statsMessage({ day, standing, userId, playButton, now }) {
   const reset = Math.floor(Date.parse(nextReset(now)) / 1000);
-  const fields = [];
-  if (guild)
-    fields.push({ name: "🏠 Sur ce serveur", value: board(guild, userId) });
-  fields.push({
-    name: guild ? "🌍 Partout dans le monde" : "🌍 Classement du jour",
-    value: board(global, userId),
-  });
+  const total = standing?.total || 0;
   return {
     type: 4,
     data: {
@@ -63,10 +57,12 @@ export function statsMessage({ day, guild, global, userId, playButton, now }) {
         {
           color: COLOR,
           title: `🏆 Tus’Mon n°${challengeNumber(day)}`,
-          description: `Le classement du jour, trié au nombre d’essais. Nouveau Pokémon <t:${reset}:R>.`,
-          fields,
+          description: `Le classement du serveur, trié au nombre d’essais. Nouveau Pokémon <t:${reset}:R>.`,
+          fields: [{ name: "🏠 Aujourd’hui", value: board(standing, userId) }],
           footer: {
-            text: `${global.total} dresseur${global.total > 1 ? "s" : ""} ${global.total > 1 ? "ont" : "a"} joué aujourd’hui`,
+            text: total
+              ? `${total} dresseur${total > 1 ? "s ont" : " a"} joué aujourd’hui`
+              : "Sois le premier à tenter ta chance",
           },
         },
       ],

@@ -22,7 +22,7 @@ const standing = (count, extra = {}) => ({
 const build = (options) =>
   statsMessage({
     day,
-    global: standing(0),
+    standing: standing(0),
     playButton: "tusmon:play",
     ...options,
   });
@@ -31,7 +31,7 @@ const fieldsOf = (message) =>
   embedOf(message).fields.map((field) => field.value);
 
 test("le podium reçoit ses médailles et les suivants leur numéro", () => {
-  const [value] = fieldsOf(build({ global: standing(5) }));
+  const [value] = fieldsOf(build({ standing: standing(5) }));
   assert.match(value, /🥇 \*\*Dresseur 1\*\* · 1\/6/);
   assert.match(value, /🥈 \*\*Dresseur 2\*\*/);
   assert.match(value, /🥉 \*\*Dresseur 3\*\*/);
@@ -39,22 +39,26 @@ test("le podium reçoit ses médailles et les suivants leur numéro", () => {
 });
 
 test("une partie perdue ne montre pas un nombre d’essais trompeur", () => {
-  const global = standing(1);
-  global.rows[0].status = "lost";
-  const [value] = fieldsOf(build({ global }));
+  const board = standing(1);
+  board.rows[0].status = "lost";
+  const [value] = fieldsOf(build({ standing: board }));
   assert.match(value, /non trouvé/);
   assert.doesNotMatch(value, /\/6/);
 });
 
 test("le joueur se repère dans le classement", () => {
-  const global = standing(3);
-  const [value] = fieldsOf(build({ global, userId: global.rows[1].userId }));
+  const board = standing(3);
+  const [value] = fieldsOf(
+    build({ standing: board, userId: board.rows[1].userId }),
+  );
   assert.match(value, /🥈 \*\*Dresseur 2\*\* · 2\/6 ← toi/);
 });
 
 test("un joueur hors du top garde sa place affichée", () => {
-  const global = standing(20);
-  const [value] = fieldsOf(build({ global, userId: global.rows[13].userId }));
+  const board = standing(20);
+  const [value] = fieldsOf(
+    build({ standing: board, userId: board.rows[13].userId }),
+  );
   assert.match(value, /Toi : 14ᵉ sur 20/);
   assert.match(value, /et 10 autres/);
   assert.equal(
@@ -63,13 +67,13 @@ test("un joueur hors du top garde sa place affichée", () => {
   );
 });
 
-test("le serveur passe avant le monde, et disparaît en message privé", () => {
-  const inGuild = build({ global: standing(4), guild: standing(2) });
+test("le message ne montre que le classement du serveur", () => {
+  const message = build({ standing: standing(4) });
   assert.deepEqual(
-    embedOf(inGuild).fields.map((field) => field.name),
-    ["🏠 Sur ce serveur", "🌍 Partout dans le monde"],
+    embedOf(message).fields.map((field) => field.name),
+    ["🏠 Aujourd’hui"],
   );
-  assert.equal(embedOf(build({ global: standing(4) })).fields.length, 1);
+  assert.doesNotMatch(JSON.stringify(message), /monde|Monde|global/);
 });
 
 test("un classement vide reste une invitation à jouer", () => {
@@ -84,9 +88,9 @@ test("un classement vide reste une invitation à jouer", () => {
 });
 
 test("un pseudo ne peut pas casser la mise en forme du classement", () => {
-  const global = standing(1);
-  global.rows[0].name = "**@everyone** `<@1>`";
-  const [value] = fieldsOf(build({ global }));
+  const board = standing(1);
+  board.rows[0].name = "**@everyone** `<@1>`";
+  const [value] = fieldsOf(build({ standing: board }));
   assert.match(value, /🥇 \*\*everyone 1\*\* · 1\/6/);
   assert.deepEqual(build({}).data.allowed_mentions, { parse: [] });
 });
@@ -105,7 +109,7 @@ test("deux joueurs à égalité partagent leur rang", () => {
       { userId: "4", name: "Quatre", status: "won", attempts: 5, score: 5 },
     ],
   };
-  const [value] = fieldsOf(build({ global: tied }));
+  const [value] = fieldsOf(build({ standing: tied }));
   assert.match(value, /🥇 \*\*Un\*\*/);
   assert.match(value, /🥈 \*\*Deux\*\*/);
   assert.match(value, /🥈 \*\*Trois\*\*/);

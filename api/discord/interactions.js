@@ -27,15 +27,18 @@ const whisper = (content) => ({
 });
 
 async function stats(interaction) {
-  const userId = interaction.member?.user?.id || interaction.user?.id || "";
   const guildId = interaction.guild_id;
+  // The standing only means something between people who share a server.
+  if (!guildId)
+    return whisper("Le classement Tus’Mon s’affiche sur un serveur.");
+  const userId = interaction.member?.user?.id || interaction.user?.id || "";
   const day = challengeDay();
-  const store = openStore();
-  const [global, guild] = await Promise.all([
-    store.standings(day, "global", STANDINGS_DEPTH),
-    guildId ? store.standings(day, `guild:${guildId}`, STANDINGS_DEPTH) : null,
-  ]);
-  return statsMessage({ day, guild, global, userId, playButton: PLAY_BUTTON });
+  const standing = await openStore().standings(
+    day,
+    `guild:${guildId}`,
+    STANDINGS_DEPTH,
+  );
+  return statsMessage({ day, standing, userId, playButton: PLAY_BUTTON });
 }
 
 export async function POST(request) {
