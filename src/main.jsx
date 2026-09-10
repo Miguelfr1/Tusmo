@@ -17,7 +17,16 @@ const App = isActivity
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Suspense fallback={<p role="status">Chargement du jeu…</p>}>
+    {/* Le même écran d’attente que celui peint par index.html, pour que le
+        chargement du bundle ne casse jamais la continuité visuelle. */}
+    <Suspense
+      fallback={
+        <div id="tm-boot" role="status">
+          <i />
+          Tus’Mon arrive…
+        </div>
+      }
+    >
       <App />
     </Suspense>
   </StrictMode>,

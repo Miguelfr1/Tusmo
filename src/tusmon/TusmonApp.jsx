@@ -236,14 +236,35 @@ export default function TusmonApp() {
             />
           </div>
           {embedded || demo ? (
-            <button
-              className="tm-primary"
-              disabled={game.busy}
-              onClick={game.connect}
-            >
-              Jouer
-              <ArrowRight size={19} />
-            </button>
+            <>
+              <button
+                className="tm-primary"
+                disabled={game.busy}
+                onClick={game.connect}
+              >
+                {game.busy ? (
+                  <>
+                    <span className="tm-spinner" aria-hidden="true" />
+                    Connexion…
+                  </>
+                ) : (
+                  <>
+                    Jouer
+                    <ArrowRight size={19} />
+                  </>
+                )}
+              </button>
+              {/* Opening the activity takes a few seconds, and a button that
+                  only greys out reads as a button that did nothing. */}
+              <div
+                className={`tm-progress ${game.busy ? "is-busy" : ""}`}
+                role="progressbar"
+                aria-label="Connexion à Discord"
+                aria-hidden={!game.busy}
+              >
+                <span />
+              </div>
+            </>
           ) : (
             <div className="tm-open-discord">
               Ouvre Discord et lance <code>/tusmon</code>
