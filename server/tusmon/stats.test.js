@@ -46,12 +46,13 @@ test("une partie perdue ne montre pas un nombre d’essais trompeur", () => {
   assert.doesNotMatch(value, /\/6/);
 });
 
-test("le joueur se repère dans le classement", () => {
+test("aucune ligne ne prend le joueur à partie", () => {
   const board = standing(3);
   const [value] = fieldsOf(
     build({ standing: board, userId: board.rows[1].userId }),
   );
-  assert.match(value, /🥈 \*\*Dresseur 2\*\* · 2\/6 ← toi/);
+  assert.match(value, /🥈 \*\*Dresseur 2\*\* · 2\/6$/m);
+  assert.doesNotMatch(value, /toi/);
 });
 
 test("un joueur hors du top garde sa place affichée", () => {
@@ -59,7 +60,7 @@ test("un joueur hors du top garde sa place affichée", () => {
   const [value] = fieldsOf(
     build({ standing: board, userId: board.rows[13].userId }),
   );
-  assert.match(value, /Toi : 14ᵉ sur 20/);
+  assert.match(value, /Tu es 14ᵉ sur 20/);
   assert.match(value, /et 10 autres/);
   assert.equal(
     value.split("\n").filter((row) => row.includes("**")).length,

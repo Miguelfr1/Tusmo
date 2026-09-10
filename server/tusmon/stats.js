@@ -18,11 +18,10 @@ const points = (row) => row.score ?? (row.status === "won" ? row.attempts : 7);
 const rankOf = (rows, index) =>
   rows.findIndex((row) => points(row) === points(rows[index])) + 1;
 
-function line(row, rank, userId) {
+function line(row, rank) {
   const badge = MEDALS[rank - 1] || `\`${String(rank).padStart(2, " ")}.\``;
   const score = row.status === "won" ? `${row.attempts}/6` : "non trouvé";
-  const you = row.userId === userId ? " ← toi" : "";
-  return `${badge} **${escape(row.name)}** · ${score}${you}`;
+  return `${badge} **${escape(row.name)}** · ${score}`;
 }
 
 function board(standing, userId) {
@@ -30,7 +29,7 @@ function board(standing, userId) {
   const rows = standing.rows;
   const shown = rows
     .slice(0, SHOWN)
-    .map((row, index) => line(row, rankOf(rows, index), userId))
+    .map((row, index) => line(row, rankOf(rows, index)))
     .join("\n");
   const rest = standing.total - Math.min(rows.length, SHOWN);
   const mine = rows.findIndex((row) => row.userId === userId);
@@ -38,7 +37,7 @@ function board(standing, userId) {
   if (rest > 0) tail.push(`_… et ${rest} autre${rest > 1 ? "s" : ""}._`);
   // Someone ranked 40th still wants to know where they stand.
   if (mine >= SHOWN)
-    tail.push(`_Toi : ${rankOf(rows, mine)}ᵉ sur ${standing.total}._`);
+    tail.push(`_Tu es ${rankOf(rows, mine)}ᵉ sur ${standing.total}._`);
   return [shown, ...tail].join("\n");
 }
 
