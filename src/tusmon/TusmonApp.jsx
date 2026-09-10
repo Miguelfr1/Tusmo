@@ -130,17 +130,19 @@ export default function TusmonApp() {
     <main
       className={`tusmon ${round ? "is-game" : ""} ${round && round.status !== "playing" ? "is-finished" : ""} ${round?.status === "playing" && tab === "play" ? "with-keyboard" : ""}`}
     >
-      <header className="tm-header">
-        <a
-          className="tm-logo"
-          href={embedded ? undefined : "/"}
-          aria-label="Tus’Mon"
-        >
-          <span className="tm-ball" />
-          Tus’<em>Mon</em>
-        </a>
-        <span className="tm-daily-badge">LE DÉFI QUOTIDIEN</span>
-      </header>
+      {!round && (
+        <header className="tm-header">
+          <a
+            className="tm-logo"
+            href={embedded ? undefined : "/"}
+            aria-label="Tus’Mon"
+          >
+            <span className="tm-ball" />
+            Tus’<em>Mon</em>
+          </a>
+          <span className="tm-daily-badge">LE DÉFI QUOTIDIEN</span>
+        </header>
+      )}
       {!round ? (
         <section className="tm-welcome">
           <h1 className="tm-hero-logo">
@@ -191,17 +193,6 @@ export default function TusmonApp() {
         </section>
       ) : (
         <>
-          <div className="tm-title">
-            <div>
-              <h1>
-                Le Pokémon du jour<span>#{round.day.replaceAll("-", "")}</span>
-              </h1>
-            </div>
-            <p>
-              Salut {game.connection.user.name}{" "}
-              <span>À toi de faire parler les lettres.</span>
-            </p>
-          </div>
           <nav className="tm-mobile-tabs" aria-label="Vue de l’activité">
             <button
               aria-pressed={tab === "play"}

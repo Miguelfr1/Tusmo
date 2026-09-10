@@ -251,37 +251,6 @@
   font-size: 11px !important;
   color: #8a6525 !important;
 }
-.tm-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  margin: 34px 0 25px;
-}
-.tm-title h1 {
-  font-size: 30px;
-  margin: 7px 0;
-}
-.tm-title h1 span {
-  font:
-    400 12px Inter,
-    sans-serif;
-  color: #7a897b;
-  display: block;
-  margin-top: 8px;
-  letter-spacing: 1px;
-}
-.tm-title > p {
-  font-weight: 600;
-  font-size: 12px;
-  text-align: right;
-}
-.tm-title > p span {
-  display: block;
-  font-weight: 400;
-  color: #70806f;
-  margin-top: 4px;
-}
 .tm-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
@@ -296,16 +265,11 @@
   flex-direction: column;
   padding-bottom: max(10px, var(--tm-safe-bottom));
 }
-.is-game .tm-header,
-.is-game .tm-title,
 .is-game .tm-mobile-tabs {
   flex: 0 0 auto;
 }
-.is-game .tm-title {
-  margin: 18px 0 12px;
-}
-.is-game .tm-title h1 {
-  margin: 0;
+.is-game .tm-mobile-tabs {
+  margin-top: 14px;
 }
 .is-game .tm-layout {
   flex: 1 1 auto;
@@ -761,19 +725,6 @@
     letter-spacing: 0.7px;
     padding-left: 10px;
   }
-  .tm-title {
-    margin: 24px 0 16px;
-    min-width: 0;
-  }
-  .tm-title h1 {
-    font-size: 25px;
-  }
-  .tm-title > p {
-    display: none;
-  }
-  .tm-title .tm-overline {
-    font-size: 8px;
-  }
   .tm-mobile-tabs {
     display: flex;
     gap: 6px;
@@ -922,15 +873,6 @@
     border-width: 2px;
     margin-right: 7px;
   }
-  .tm-title {
-    margin-top: 18px;
-  }
-  .tm-title h1 {
-    font-size: 22px;
-  }
-  .tm-title .tm-overline {
-    letter-spacing: 0.75px;
-  }
   .tm-key-row {
     gap: 2px;
     margin: 4px 0;
@@ -980,16 +922,6 @@
     width: 92px;
     margin-right: -14px;
   }
-  .is-game .tm-header {
-    padding: 8px 0;
-  }
-  .is-game .tm-title {
-    margin: 7px 0 5px;
-  }
-  .is-game .tm-title h1 {
-    font-size: 18px;
-  }
-  .is-game .tm-title h1 span,
   .is-game .tm-game-meta > span,
   .is-game .tm-legend {
     display: none;
@@ -1053,12 +985,6 @@
   }
   .tm-mascots {
     display: none;
-  }
-  .is-game .tm-title {
-    display: none;
-  }
-  .is-game .tm-header {
-    padding: 8px 0;
   }
   .is-game .tm-play,
   .is-game .tm-leaderboard {
