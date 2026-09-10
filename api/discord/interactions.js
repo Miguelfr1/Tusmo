@@ -1,5 +1,10 @@
 import { APPLICATION_ID, validInteraction } from "../../server/tusmon/auth.js";
 import { json, readBody } from "../../server/tusmon/api.js";
+import { createRedisStore } from "../../server/tusmon/store.js";
+
+// Discord keeps an interaction usable for a quarter of an hour, which is the
+// window the result has to be posted in.
+const LAUNCH_TTL = 890;
 
 export async function POST(request) {
   try {
@@ -20,8 +25,27 @@ export async function POST(request) {
       (process.env.DISCORD_APPLICATION_ID || APPLICATION_ID)
     )
       return json({ error: "Application invalide." }, 403);
-    if (interaction.type === 2 && interaction.data?.name === "tusmon")
+    if (interaction.type === 2 && interaction.data?.name === "tusmon") {
+      const userId = (interaction.member?.user || interaction.user)?.id;
+      if (userId)
+        try {
+          const store = createRedisStore({
+            url:
+              process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
+            token:
+              process.env.UPSTASH_REDIS_REST_TOKEN ||
+              process.env.KV_REST_API_TOKEN,
+          });
+          await store.rememberLaunch(
+            userId,
+            { token: interaction.token, channelId: interaction.channel_id },
+            LAUNCH_TTL,
+          );
+        } catch {
+          // The game itself matters more than the result message.
+        }
       return json({ type: 12 });
+    }
     return json({
       type: 4,
       data: {

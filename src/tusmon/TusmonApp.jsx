@@ -51,7 +51,7 @@ function Result({ round, connection, stats, playedThisSession }) {
       try {
         const blob = await renderShareCard({ round, user: connection.user });
         if (!blob) return;
-        await shareMoment(blob, connection.session);
+        await shareMoment(blob, connection.session, round);
       } catch {
         // The Partager button stays as the manual fallback.
       }

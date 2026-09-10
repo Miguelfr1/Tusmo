@@ -6,10 +6,6 @@ export const demo =
   import.meta.env.DEV &&
   new URLSearchParams(window.location.search).get("demo") === "1";
 const prefix = embedded ? "/.proxy" : "";
-// Discord puts the channel in the activity URL, which is where the SDK reads it
-// from too. Taking it straight from there keeps the share working even if the
-// SDK instance is not around yet.
-const channelId = new URLSearchParams(window.location.search).get("channel_id");
 let sdk;
 let connection;
 
@@ -104,7 +100,7 @@ export function connectDiscord({ reconnect = false } = {}) {
 }
 
 export function canShareMoment() {
-  return Boolean(embedded && channelId);
+  return embedded;
 }
 
 function toBase64(blob) {
@@ -117,17 +113,21 @@ function toBase64(blob) {
 }
 
 /**
- * Hands the result card to the app, which posts it in the channel itself.
- * Nothing is sent from the player's account and no dialog is shown.
+ * Hands the result card to the app, which publishes it through the /tusmon
+ * interaction. Nothing is sent from the player's account, and no dialog opens.
  */
-export async function shareMoment(blob, session) {
+export async function shareMoment(blob, session, round) {
   if (!canShareMoment()) throw new Error("Le partage Discord n’est pas prêt.");
   const response = await fetch(`${prefix}/api/tusmon-share`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       session,
-      channelId,
+      round: {
+        number: round.number,
+        status: round.status,
+        attempts: round.rows.length,
+      },
       image: await toBase64(blob),
     }),
     signal: AbortSignal.timeout(20000),

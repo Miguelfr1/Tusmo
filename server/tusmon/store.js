@@ -21,6 +21,9 @@ const LIMIT = `local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call(
 const gameKey = (day, id) => `tusmon:v1:game:${day}:${id}`;
 const profileKey = (id) => `tusmon:v1:profile:${id}`;
 const boardKey = (day, scope) => `tusmon:v1:board:${day}:${scope}`;
+// Where the interaction that opened the activity is parked, so the result can
+// be posted from that interaction instead of from a bot in the server.
+const launchKey = (id) => `tusmon:v1:launch:${id}`;
 
 export function createRedisStore({ url, token }) {
   if (!url || !token || !url.startsWith("https://"))
@@ -105,6 +108,19 @@ export function createRedisStore({ url, token }) {
         total: await command(["ZCARD", key]),
       };
     },
+    async rememberLaunch(id, launch, seconds) {
+      await command([
+        "SET",
+        launchKey(id),
+        JSON.stringify(launch),
+        "EX",
+        seconds,
+      ]);
+    },
+    async recallLaunch(id) {
+      const raw = await command(["GET", launchKey(id)]);
+      return raw ? JSON.parse(raw) : null;
+    },
     async limit(key, max, seconds = 60) {
       return (
         (await command([
@@ -124,6 +140,7 @@ export function createMemoryStore() {
   const games = new Map(),
     profiles = new Map(),
     boards = new Map(),
+    launches = new Map(),
     limits = new Map();
   return {
     async read(day, id) {
@@ -167,6 +184,13 @@ export function createMemoryStore() {
           ? { ...me, rank: rows.findIndex((r) => r.score === me.score) + 1 }
           : null,
       };
+    },
+    async rememberLaunch(id, launch, seconds) {
+      launches.set(id, { launch, until: Date.now() + seconds * 1000 });
+    },
+    async recallLaunch(id) {
+      const entry = launches.get(id);
+      return entry && entry.until > Date.now() ? entry.launch : null;
     },
     async limit(key, max, seconds = 60) {
       const old = limits.get(key);

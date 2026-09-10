@@ -6,23 +6,40 @@ const DISCORD = "https://discord.com/api/v10";
 // request cannot make the function haul megabytes around.
 const MAX_IMAGE_BYTES = 900000;
 
-function botHeaders(env) {
-  if (!env.DISCORD_BOT_TOKEN)
-    throw new GameError("Le partage automatique n’est pas configuré.", 503);
-  return { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}` };
+function resultPayload(round) {
+  const score = round?.status === "won" ? `${round.attempts}/6` : "X/6";
+  return {
+    attachments: [{ id: 0, filename: "tusmon.png" }],
+    embeds: [
+      {
+        color: 0x21644c,
+        title: `Tus’Mon n°${round?.number || ""} · ${score}`.trim(),
+        image: { url: "attachment://tusmon.png" },
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 5,
+            label: "Jouer",
+            url: `https://discord.com/activities/${APPLICATION_ID}`,
+          },
+        ],
+      },
+    ],
+  };
 }
 
 /**
- * Posts the result card in the channel the activity is running in, the way
- * Wordle does: no picker, no confirmation, just the message.
+ * Posts the result card the way Wordle does: by editing the message the
+ * /tusmon command left in the channel. The app answers through its own
+ * interaction, so nothing here needs a bot sitting in the server.
  */
 export async function postResult(body, env, { store, fetchImpl = fetch } = {}) {
   const user = readSession(body.session, env.TUSMON_SESSION_SECRET);
-  const channelId = String(body.channelId || "");
-  if (!/^\d{17,22}$/.test(channelId))
-    throw new GameError("Salon Discord invalide.");
-  if (!user.guildId)
-    throw new GameError("Ouvre Tus’Mon depuis un serveur pour partager.", 403);
   if (typeof body.image !== "string" || body.image.length > MAX_IMAGE_BYTES)
     throw new GameError("Image de résultat invalide.");
   const image = Buffer.from(body.image, "base64");
@@ -31,11 +48,17 @@ export async function postResult(body, env, { store, fetchImpl = fetch } = {}) {
     image.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a"
   )
     throw new GameError("Image de résultat invalide.");
+  if (!store) throw new GameError("Le partage n’est pas disponible.", 503);
 
+  const launch = await store.recallLaunch(user.id);
+  if (!launch?.token)
+    throw new GameError(
+      "Relance /tusmon pour que ton résultat soit publié.",
+      409,
+    );
   // One result per player per day, held server side so a reopened activity
   // never posts twice and a replayed request cannot spam the channel.
   if (
-    store &&
     !(await store.limit(
       `share:${challengeDay(new Date())}:${user.id}`,
       1,
@@ -44,56 +67,29 @@ export async function postResult(body, env, { store, fetchImpl = fetch } = {}) {
   )
     throw new GameError("Ton résultat a déjà été publié.", 429);
 
-  const headers = botHeaders(env);
-  // The channel comes from the client, so it is only trusted once Discord
-  // confirms it belongs to the server the session was verified against.
-  const channel = await fetchImpl(`${DISCORD}/channels/${channelId}`, {
-    headers,
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!channel.ok)
-    throw new GameError("Tus’Mon ne voit pas ce salon Discord.", 403);
-  const { guild_id: guildId } = await channel.json();
-  if (guildId !== user.guildId)
-    throw new GameError("Ce salon n’est pas celui de ta partie.", 403);
-
   const applicationId = env.DISCORD_APPLICATION_ID || APPLICATION_ID;
   const form = new FormData();
-  form.append(
-    "payload_json",
-    JSON.stringify({
-      // The app posts it itself, the way the Wordle bot does: the player
-      // never picks a channel and never sends anything.
-      content: `${user.name} vient de jouer`,
-      allowed_mentions: { parse: [] },
-      embeds: [{ color: 0x21644c, image: { url: "attachment://tusmon.png" } }],
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: 5,
-              label: "Jouer",
-              url: `https://discord.com/activities/${applicationId}`,
-            },
-          ],
-        },
-      ],
-    }),
-  );
+  form.append("payload_json", JSON.stringify(resultPayload(body.round)));
   form.append(
     "files[0]",
     new Blob([image], { type: "image/png" }),
     "tusmon.png",
   );
-  const posted = await fetchImpl(`${DISCORD}/channels/${channelId}/messages`, {
-    method: "POST",
-    headers,
+  const base = `${DISCORD}/webhooks/${applicationId}/${launch.token}`;
+  const edited = await fetchImpl(`${base}/messages/@original`, {
+    method: "PATCH",
     body: form,
     signal: AbortSignal.timeout(12000),
   });
-  if (!posted.ok)
+  if (edited.ok) return { posted: true };
+  // A launch message that cannot be edited still deserves the result, so the
+  // card goes out as a follow-up on the same interaction.
+  const followUp = await fetchImpl(base, {
+    method: "POST",
+    body: form,
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!followUp.ok)
     throw new GameError("Discord a refusé le message de résultat.", 502);
   return { posted: true };
 }
