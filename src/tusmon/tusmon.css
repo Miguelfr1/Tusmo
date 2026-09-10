@@ -557,6 +557,42 @@
   padding-top: 22px;
   margin-top: 20px;
 }
+.is-finished .tm-game-meta,
+.is-finished .tm-grid,
+.is-finished .tm-legend {
+  display: none;
+}
+.is-finished .tm-result {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.is-finished .tm-result h2 {
+  margin: 0 0 4px;
+}
+.is-finished .tm-result > p {
+  margin: 0;
+}
+.is-finished .tm-art {
+  flex: 1 1 auto;
+  min-height: 80px;
+  max-height: 250px;
+  margin: 10px auto 14px;
+}
+.is-finished .tm-art img {
+  width: 100%;
+  height: 100%;
+}
+.is-finished .tm-countdown {
+  flex: 0 0 auto;
+  margin-top: 12px;
+}
 .tm-result h2 {
   font-size: 32px;
   margin: 8px 0;
@@ -715,6 +751,12 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
+  }
+  .is-finished .tm-result h2 {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+  .is-finished .tm-art {
+    max-height: min(30dvh, 220px);
   }
   .is-game .tm-grid {
     flex: 1 1 auto;

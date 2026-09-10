@@ -11,12 +11,7 @@ import "./tusmon.css";
 import useDailyGame from "./useDailyGame.js";
 import TusmonBoard from "./TusmonBoard.jsx";
 import TusmonLeaderboard from "./TusmonLeaderboard.jsx";
-import { demo, embedded, imageUrl, requestApi, resultText } from "./discord.js";
-
-const artwork = (id) =>
-  imageUrl(
-    `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
-  );
+import { demo, embedded, pokemonImage, resultText } from "./discord.js";
 const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
   day: "numeric",
@@ -24,25 +19,9 @@ const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 }).format(new Date());
 
-function Result({ round, connection }) {
-  const [card, setCard] = useState(null);
-  const [failed, setFailed] = useState(false);
+function Result({ round }) {
   const [share, setShare] = useState("");
   const [showText, setShowText] = useState(false);
-  useEffect(() => {
-    if (round.status !== "won") return;
-    const controller = new AbortController();
-    requestApi("card", connection.session, null, { signal: controller.signal })
-      .then((result) => {
-        if (
-          result.day === round.day &&
-          result.card?.pokemonId === round.solution.id
-        )
-          setCard(result.card);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [connection, round.day, round.solution.id, round.status]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(resultText(round));
@@ -52,39 +31,26 @@ function Result({ round, connection }) {
       setShare("Sélectionne et copie ton résultat ci-dessous.");
     }
   };
-  const cardImage = card && !failed && imageUrl(card.image);
   return (
     <section
       className={`tm-result ${round.status}`}
       aria-label="Résultat du jour"
     >
-      <span className="tm-overline">
-        {round.status === "won" ? "POKÉMON DÉCOUVERT" : "RENDEZ-VOUS DEMAIN"}
-      </span>
-      <h2>{round.status === "won" ? "Bravo, Dresseur !" : "Bien tenté !"}</h2>
+      <h2>{round.status === "won" ? "Trouvé !" : "Raté"}</h2>
       <p>
-        C’était <strong>{round.solution.name}</strong>.{" "}
-        {round.status === "won"
-          ? `${round.rows.length} essai(s), bien joué.`
-          : "Un nouveau Pokémon t’attend demain."}
+        <strong>{round.solution.name}</strong> · {round.status === "won" ? round.rows.length : "X"}/6
       </p>
-      <div className={`tm-art ${cardImage ? "is-card" : ""}`}>
+      <div className="tm-art">
         <img
-          src={cardImage || artwork(round.solution.id)}
-          alt={cardImage ? `Carte ${card.name}` : round.solution.name}
-          onError={cardImage ? () => setFailed(true) : undefined}
+          src={pokemonImage(round.solution.id)}
+          alt={round.solution.name}
+          onError={(event) => event.currentTarget.remove()}
         />
       </div>
-      {cardImage && (
-        <small>
-          {card.source} · {card.set}
-          {card.artist ? ` · ${card.artist}` : ""}
-        </small>
-      )}
       <button className="tm-primary" onClick={copy}>
-        <Share2 size={17} /> Partager sans spoiler
+        <Share2 size={17} /> Partager
       </button>
-      <p role="status">{share}</p>
+      {share && <p role="status">{share}</p>}
       {showText && (
         <textarea
           aria-label="Résultat à copier"
@@ -138,7 +104,7 @@ export default function TusmonApp() {
   const blocked = game.busy || game.retryable || game.expiredSession;
   return (
     <main
-      className={`tusmon ${round ? "is-game" : ""} ${round?.status === "playing" && tab === "play" ? "with-keyboard" : ""}`}
+      className={`tusmon ${round ? "is-game" : ""} ${round && round.status !== "playing" ? "is-finished" : ""} ${round?.status === "playing" && tab === "play" ? "with-keyboard" : ""}`}
     >
       <header className="tm-header">
         <a
@@ -160,7 +126,7 @@ export default function TusmonApp() {
           <p>Devine chaque jour un Pokémon et grimpe dans le classement.</p>
           <div className="tm-mascots" aria-hidden="true">
             {[1, 25, 4].map((id) => (
-              <img key={id} src={`/images/pokemon/${id}.png`} alt="" />
+              <img key={id} src={pokemonImage(id)} alt="" />
             ))}
           </div>
           {embedded || demo ? (
@@ -236,11 +202,7 @@ export default function TusmonApp() {
                 disabled={blocked}
               />
               {round.status !== "playing" && (
-                <Result
-                  key={round.day}
-                  round={round}
-                  connection={game.connection}
-                />
+                <Result key={round.day} round={round} />
               )}
               <Countdown
                 key={`${round.day}:${round.revision}`}
