@@ -46,22 +46,11 @@ function Result({ round, connection, stats, playedThisSession }) {
   useEffect(() => {
     if (posted.current || !playedThisSession.current) return;
     if (!canShareMoment()) return;
-    const key = `tusmon:shared:${round.day}`;
-    try {
-      if (localStorage.getItem(key)) return;
-    } catch {
-      // Private browsing: better to post twice than never.
-    }
     posted.current = true;
     (async () => {
       try {
         const blob = await renderShareCard({ round, user: connection.user });
         if (!blob) return;
-        try {
-          localStorage.setItem(key, "1");
-        } catch {
-          // Ignore: the in-memory guard already covers this session.
-        }
         await shareMoment(blob, connection.session);
       } catch {
         // The Partager button stays as the manual fallback.

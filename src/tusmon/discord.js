@@ -6,6 +6,10 @@ export const demo =
   import.meta.env.DEV &&
   new URLSearchParams(window.location.search).get("demo") === "1";
 const prefix = embedded ? "/.proxy" : "";
+// Discord puts the channel in the activity URL, which is where the SDK reads it
+// from too. Taking it straight from there keeps the share working even if the
+// SDK instance is not around yet.
+const channelId = new URLSearchParams(window.location.search).get("channel_id");
 let sdk;
 let connection;
 
@@ -100,7 +104,7 @@ export function connectDiscord({ reconnect = false } = {}) {
 }
 
 export function canShareMoment() {
-  return Boolean(embedded && sdk?.channelId);
+  return Boolean(embedded && channelId);
 }
 
 function toBase64(blob) {
@@ -123,7 +127,7 @@ export async function shareMoment(blob, session) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       session,
-      channelId: sdk.channelId,
+      channelId,
       image: await toBase64(blob),
     }),
     signal: AbortSignal.timeout(20000),

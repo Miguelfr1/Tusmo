@@ -1,4 +1,4 @@
-import { GameError } from "./game.js";
+import { challengeDay, GameError } from "./game.js";
 import { readSession, APPLICATION_ID } from "./auth.js";
 
 const DISCORD = "https://discord.com/api/v10";
@@ -32,8 +32,16 @@ export async function postResult(body, env, { store, fetchImpl = fetch } = {}) {
   )
     throw new GameError("Image de résultat invalide.");
 
-  // One result per round, so a replayed request cannot spam the channel.
-  if (store && !(await store.limit(`share:${user.id}`, 3, 3600)))
+  // One result per player per day, held server side so a reopened activity
+  // never posts twice and a replayed request cannot spam the channel.
+  if (
+    store &&
+    !(await store.limit(
+      `share:${challengeDay(new Date())}:${user.id}`,
+      1,
+      7200,
+    ))
+  )
     throw new GameError("Ton résultat a déjà été publié.", 429);
 
   const headers = botHeaders(env);
