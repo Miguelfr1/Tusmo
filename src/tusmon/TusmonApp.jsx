@@ -125,9 +125,16 @@ export default function TusmonApp() {
           </h1>
           <p>Devine chaque jour un Pokémon et grimpe dans le classement.</p>
           <div className="tm-mascots" aria-hidden="true">
-            {[1, 25, 4].map((id) => (
-              <img key={id} src={pokemonImage(id)} alt="" />
-            ))}
+            <img
+              className="tm-welcome-card"
+              src="/images/cards/280.webp"
+              alt=""
+            />
+            <img
+              className="tm-welcome-sprite"
+              src="/images/pokemon/25.png"
+              alt=""
+            />
           </div>
           {embedded || demo ? (
             <button

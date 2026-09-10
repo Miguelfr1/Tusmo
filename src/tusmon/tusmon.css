@@ -74,6 +74,16 @@
 .tusmon:not(.is-game) > .tm-header {
   display: none;
 }
+.tusmon:not(.is-game) {
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.tusmon:not(.is-game) .tm-welcome {
+  margin: 0 auto;
+}
 .tm-logo {
   display: flex;
   align-items: center;
@@ -145,19 +155,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 195px;
+  gap: 18px;
+  height: 210px;
   margin: 20px 0;
 }
 .tm-mascots img {
-  width: 145px;
-  height: 145px;
   object-fit: contain;
   filter: drop-shadow(0 16px 14px #23452b18);
 }
-.tm-mascots img:nth-child(2) {
-  width: 195px;
-  height: 195px;
-  transform: translateY(-8px);
+.tm-mascots .tm-welcome-card {
+  width: 135px;
+  height: 190px;
+  border-radius: 9px;
+  transform: rotate(-4deg);
+}
+.tm-mascots .tm-welcome-sprite {
+  width: 180px;
+  height: 180px;
+  transform: translateY(5px);
 }
 .tm-primary {
   display: inline-flex;
@@ -752,6 +767,14 @@
     height: 100%;
     min-height: 0;
   }
+  .is-game .view-board .tm-play {
+    display: none;
+  }
+  .is-game .view-board .tm-board-panel {
+    display: block;
+    height: 100%;
+    min-height: 0;
+  }
   .is-finished .tm-result h2 {
     font-size: clamp(28px, 9vw, 40px);
   }
@@ -814,12 +837,15 @@
     margin: clamp(10px, 2.5dvh, 20px) 0;
   }
   .tm-mascots img {
-    width: clamp(68px, 24vw, 90px);
-    height: clamp(78px, 18dvh, 100px);
+    max-width: 45vw;
   }
-  .tm-mascots img:nth-child(2) {
-    width: clamp(96px, 32vw, 130px);
-    height: clamp(108px, 22dvh, 145px);
+  .tm-mascots .tm-welcome-card {
+    width: clamp(72px, 23vw, 105px);
+    height: clamp(102px, 21dvh, 148px);
+  }
+  .tm-mascots .tm-welcome-sprite {
+    width: clamp(100px, 31vw, 140px);
+    height: clamp(100px, 22dvh, 145px);
   }
   .tm-countdown {
     font-size: 9px;
@@ -888,10 +914,15 @@
     margin: 8px 0 12px;
   }
   .tm-mascots img {
-    height: 78px;
+    max-height: 92px;
   }
-  .tm-mascots img:nth-child(2) {
-    height: 100px;
+  .tm-mascots .tm-welcome-card {
+    height: 90px;
+    width: 64px;
+  }
+  .tm-mascots .tm-welcome-sprite {
+    height: 92px;
+    width: 92px;
   }
   .is-game .tm-header {
     padding: 8px 0;
