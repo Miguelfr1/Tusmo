@@ -8,9 +8,12 @@ import "./styles/booster.css";
 const isActivity =
   location.pathname === "/tusmon" ||
   new URLSearchParams(location.search).has("frame_id");
+const isLegal = ["/privacy", "/terms"].includes(location.pathname);
 const App = isActivity
   ? lazy(() => import("./tusmon/TusmonApp.jsx"))
-  : lazy(() => import("./App.jsx"));
+  : isLegal
+    ? lazy(() => import("./legal/LegalPage.jsx"))
+    : lazy(() => import("./App.jsx"));
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
