@@ -4,6 +4,7 @@ import {
   challengeDay,
   dailyWallet,
   settleWallet,
+  walletStats,
   GameError,
   leaderboardEntry,
   newRound,
@@ -181,6 +182,7 @@ export function createGameApi({
         throw new GameError("Action inconnue.", 404);
       return json({
         round: publicRound(round, target, now),
+        stats: walletStats(wallet),
         user: { id: user.id, name: user.name, guildId: user.guildId },
       });
     } catch (error) {

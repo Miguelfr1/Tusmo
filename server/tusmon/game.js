@@ -161,20 +161,37 @@ export function publicRound(round, target, now = new Date()) {
 }
 
 export function dailyWallet(saved) {
-  return saved || {
+  // `played` arrived after the first profiles: older ones fall back to their wins.
+  if (saved) return { played: saved.wins, ...saved };
+  return {
+    played: 0,
     wins: 0,
     streak: 0,
     bestStreak: 0,
   };
 }
 
+export function walletStats(wallet) {
+  const { played, wins, streak, bestStreak } = dailyWallet(wallet);
+  return {
+    played,
+    wins,
+    streak,
+    bestStreak,
+    winRate: played ? Math.round((wins / played) * 100) : 0,
+  };
+}
+
 export function settleWallet(wallet, before, after) {
   if (before === after) return { wallet, round: after };
+  if (before.status !== "playing" || after.status === "playing")
+    return { wallet, round: after };
   if (after.status === "won") {
     const streak = wallet.streak + 1;
     return {
       wallet: {
         ...wallet,
+        played: wallet.played + 1,
         streak,
         bestStreak: Math.max(wallet.bestStreak, streak),
         wins: wallet.wins + 1,
@@ -183,7 +200,7 @@ export function settleWallet(wallet, before, after) {
     };
   }
   return {
-    wallet: after.status === "lost" ? { ...wallet, streak: 0 } : wallet,
+    wallet: { ...wallet, played: wallet.played + 1, streak: 0 },
     round: after,
   };
 }

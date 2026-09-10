@@ -25,7 +25,7 @@ const todayLabel = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 }).format(new Date());
 
-function Result({ round, connection }) {
+function Result({ round, connection, stats }) {
   const [card, setCard] = useState(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [share, setShare] = useState("");
@@ -71,6 +71,22 @@ function Result({ round, connection }) {
           />
         )}
       </div>
+      {stats && (
+        <dl className="tm-stats" aria-label="Tes statistiques">
+          <div>
+            <dt>Victoires</dt>
+            <dd>{stats.winRate}%</dd>
+          </div>
+          <div>
+            <dt>Série</dt>
+            <dd>{stats.streak}</dd>
+          </div>
+          <div>
+            <dt>Record</dt>
+            <dd>{stats.bestStreak}</dd>
+          </div>
+        </dl>
+      )}
       <button className="tm-primary" onClick={copy}>
         <Share2 size={17} /> Partager
       </button>
@@ -229,6 +245,7 @@ export default function TusmonApp() {
                   key={round.day}
                   round={round}
                   connection={game.connection}
+                  stats={game.data?.stats}
                 />
               )}
               <Countdown

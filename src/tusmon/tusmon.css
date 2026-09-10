@@ -83,7 +83,7 @@
 }
 .tusmon:not(.is-game) .tm-welcome {
   margin: 0 auto;
-  zoom: 1.12;
+  zoom: 1.22;
 }
 .tm-logo {
   display: flex;
@@ -614,6 +614,37 @@
 }
 .tm-result > p {
   font-size: 12px;
+}
+.tm-stats {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px auto 14px;
+  padding: 0;
+  width: min(300px, 100%);
+}
+.tm-stats > div {
+  flex: 1;
+  background: #eef1e4;
+  border: 1px solid var(--tm-line);
+  border-radius: 11px;
+  padding: 8px 4px;
+}
+.tm-stats dt {
+  font-size: 9px;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: #748170;
+}
+.tm-stats dd {
+  margin: 3px 0 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--tm-ink);
+}
+.is-finished .tm-stats {
+  flex: 0 0 auto;
+  margin: 2px auto 6px;
 }
 .tm-art {
   margin: 20px auto;
