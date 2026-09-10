@@ -211,8 +211,11 @@
   font-size: 11px;
 }
 .tm-byline span {
-  margin: 0 5px;
-  color: #b27a25;
+  display: block;
+}
+.tm-byline span + span {
+  margin-top: 2px;
+  color: #748170;
 }
 .tm-demo {
   font-size: 11px !important;

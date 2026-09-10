@@ -179,7 +179,8 @@ export default function TusmonApp() {
             </div>
           )}
           <p className="tm-byline">
-            {todayLabel} <span>·</span> Fait par miggs
+            <span>{todayLabel}</span>
+            <span>Fait par migs - v1</span>
           </p>
           {demo && (
             <p className="tm-demo">
