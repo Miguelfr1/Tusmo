@@ -587,6 +587,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 .is-finished .tm-result h2 {
   margin: 0 0 4px;
@@ -595,14 +596,16 @@
   margin: 0;
 }
 .is-finished .tm-art {
-  flex: 1 1 auto;
-  min-height: 80px;
-  max-height: 250px;
-  margin: 10px auto 14px;
+  flex: 0 1 230px;
+  width: min(170px, 45vw);
+  min-height: 120px;
+  max-height: min(27dvh, 230px);
+  margin: 4px auto 8px;
 }
 .is-finished .tm-art img {
-  width: 100%;
+  width: auto;
   height: 100%;
+  max-width: 100%;
 }
 .is-finished .tm-countdown {
   flex: 0 0 auto;
@@ -630,10 +633,8 @@
   filter: drop-shadow(0 12px 14px #36552b22);
 }
 .tm-art.is-card img {
-  border-radius: 10px;
-  box-shadow:
-    0 0 0 5px #eddb9c,
-    0 16px 30px #77602126;
+  border-radius: 7px;
+  box-shadow: 0 10px 22px #293d3024;
 }
 .tm-art.is-loading::before {
   content: "";
@@ -794,9 +795,6 @@
   }
   .is-finished .tm-result h2 {
     font-size: clamp(28px, 9vw, 40px);
-  }
-  .is-finished .tm-art {
-    max-height: min(30dvh, 220px);
   }
   .is-game .tm-grid {
     flex: 1 1 auto;
