@@ -13,6 +13,7 @@ import TusmonBoard from "./TusmonBoard.jsx";
 import TusmonLeaderboard from "./TusmonLeaderboard.jsx";
 import {
   cardImage,
+  pokemonImage,
   demo,
   embedded,
   requestApi,
@@ -51,38 +52,67 @@ function Result({ round, connection, stats }) {
       setShare("Sélectionne et copie ton résultat ci-dessous.");
     }
   };
+  // A defeat has no card to reveal, so the official artwork stands in for it.
+  const artState =
+    round.status === "won"
+      ? card && !imageFailed
+        ? "is-card"
+        : card === null
+          ? "is-loading"
+          : "is-sprite"
+      : "is-sprite";
   return (
     <section
       className={`tm-result ${round.status}`}
       aria-label="Résultat du jour"
     >
-      <h2>{round.status === "won" ? "Trouvé !" : "Raté"}</h2>
-      <p>
-        <strong>{round.solution.name}</strong> · {round.status === "won" ? round.rows.length : "X"}/6
-      </p>
-      <div
-        className={`tm-art ${card && !imageFailed ? "is-card" : card === null ? "is-loading" : "is-empty"}`}
-      >
-        {card && !imageFailed && (
-          <img
-            src={cardImage(card.image)}
-            alt={`Carte ${round.solution.name}`}
-            onError={() => setImageFailed(true)}
-          />
-        )}
+      <header className="tm-result-head">
+        <h2>{round.status === "won" ? "Trouvé !" : "Raté"}</h2>
+        <p className="tm-result-sub">
+          {round.status === "won"
+            ? `Résolu en ${round.rows.length} essai${round.rows.length > 1 ? "s" : ""} sur 6`
+            : "Le Pokémon du jour t’a échappé"}
+        </p>
+      </header>
+      <div className="tm-reveal">
+        <div className={`tm-art ${artState}`}>
+          {artState === "is-card" && (
+            <img
+              src={cardImage(card.image)}
+              alt={`Carte ${round.solution.name}`}
+              onError={() => setImageFailed(true)}
+            />
+          )}
+          {artState === "is-sprite" && (
+            <img
+              src={pokemonImage(round.solution.id)}
+              alt={round.solution.name}
+            />
+          )}
+        </div>
+        <div className="tm-reveal-name">
+          <strong>{round.solution.name}</strong>
+          {round.solution.types?.length > 0 && (
+            <span className="tm-types">
+              {round.solution.types.map((type) => (
+                <em key={type}>{type}</em>
+              ))}
+            </span>
+          )}
+        </div>
       </div>
       {stats && (
         <dl className="tm-stats" aria-label="Tes statistiques">
           <div>
-            <dt>Victoires</dt>
+            <dt>Taux de victoire</dt>
             <dd>{stats.winRate}%</dd>
           </div>
           <div>
-            <dt>Série</dt>
+            <dt>Série en cours</dt>
             <dd>{stats.streak}</dd>
           </div>
           <div>
-            <dt>Record</dt>
+            <dt>Meilleure série</dt>
             <dd>{stats.bestStreak}</dd>
           </div>
         </dl>
