@@ -150,13 +150,13 @@ export default function TusmonApp() {
           <p>Devine chaque jour un Pokémon et grimpe dans le classement.</p>
           <div className="tm-mascots" aria-hidden="true">
             <img
-              className="tm-welcome-card"
-              src="/images/cards/280.webp"
+              className="tm-welcome-sprite"
+              src="/images/pokemon/25.png"
               alt=""
             />
             <img
-              className="tm-welcome-sprite"
-              src="/images/pokemon/25.png"
+              className="tm-welcome-card"
+              src="/images/cards/280.webp"
               alt=""
             />
           </div>

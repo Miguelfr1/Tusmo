@@ -152,27 +152,56 @@
   font-size: 15px;
 }
 .tm-mascots {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
   height: 210px;
   margin: 20px 0;
 }
 .tm-mascots img {
   object-fit: contain;
-  filter: drop-shadow(0 16px 14px #23452b18);
-}
-.tm-mascots .tm-welcome-card {
-  width: 135px;
-  height: 190px;
-  border-radius: 9px;
-  transform: rotate(-4deg);
 }
 .tm-mascots .tm-welcome-sprite {
-  width: 180px;
+  position: relative;
+  z-index: 2;
+  width: 186px;
+  height: 186px;
+  margin-right: -28px;
+  transform: rotate(-8deg);
+  filter: drop-shadow(8px 18px 10px #21412b26);
+  animation: tm-sprite-float 5s ease-in-out infinite;
+}
+.tm-mascots .tm-welcome-card {
+  position: relative;
+  z-index: 1;
+  width: auto;
   height: 180px;
-  transform: translateY(5px);
+  aspect-ratio: 600 / 825;
+  border-radius: 9px;
+  transform: rotate(12deg);
+  box-shadow:
+    10px 16px 26px #21412b30,
+    0 0 0 5px #ffffff88;
+  animation: tm-card-float 6s ease-in-out infinite;
+}
+@keyframes tm-sprite-float {
+  0%,
+  100% {
+    transform: rotate(-8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-4deg) translateY(-8px);
+  }
+}
+@keyframes tm-card-float {
+  0%,
+  100% {
+    transform: rotate(12deg) translateY(0);
+  }
+  50% {
+    transform: rotate(9deg) translateY(-9px);
+  }
 }
 .tm-primary {
   display: inline-flex;
@@ -858,12 +887,13 @@
     max-width: 45vw;
   }
   .tm-mascots .tm-welcome-card {
-    width: clamp(72px, 23vw, 105px);
-    height: clamp(102px, 21dvh, 148px);
+    width: auto;
+    height: clamp(96px, 19dvh, 132px);
   }
   .tm-mascots .tm-welcome-sprite {
     width: clamp(100px, 31vw, 140px);
     height: clamp(100px, 22dvh, 145px);
+    margin-right: clamp(-24px, -5vw, -16px);
   }
   .tm-countdown {
     font-size: 9px;
@@ -935,12 +965,13 @@
     max-height: 92px;
   }
   .tm-mascots .tm-welcome-card {
-    height: 90px;
-    width: 64px;
+    height: 84px;
+    width: auto;
   }
   .tm-mascots .tm-welcome-sprite {
     height: 92px;
     width: 92px;
+    margin-right: -14px;
   }
   .is-game .tm-header {
     padding: 8px 0;
