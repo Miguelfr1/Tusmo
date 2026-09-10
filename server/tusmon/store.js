@@ -18,6 +18,17 @@ if ARGV[4] ~= '' then
 end
 return 1`;
 const LIMIT = `local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end; return n`;
+// The whole standing in one round trip, because a slash command has three
+// seconds to answer and every extra hop eats into them.
+const STANDINGS = `
+local out = { redis.call('ZCARD', KEYS[1]) }
+local ids = redis.call('ZRANGE', KEYS[1], 0, ARGV[1])
+for i = 1, #ids do
+  local row = redis.call('HGET', KEYS[2], ids[i])
+  if row then out[#out + 1] = row end
+end
+return out`;
+
 const gameKey = (day, id) => `tusmon:v1:game:${day}:${id}`;
 const profileKey = (id) => `tusmon:v1:profile:${id}`;
 const boardKey = (day, scope) => `tusmon:v1:board:${day}:${scope}`;
@@ -27,8 +38,7 @@ const boardKey = (day, scope) => `tusmon:v1:board:${day}:${scope}`;
 const launchKey = (channelId) => `tusmon:v1:launch:${channelId}`;
 // Everyone who finished the day's Pokémon in that channel, so the card can
 // show them all rather than only whoever posted last.
-const resultsKey = (day, channelId) =>
-  `tusmon:v1:results:${day}:${channelId}`;
+const resultsKey = (day, channelId) => `tusmon:v1:results:${day}:${channelId}`;
 
 export function createRedisStore({ url, token }) {
   if (!url || !token || !url.startsWith("https://"))
@@ -113,6 +123,18 @@ export function createRedisStore({ url, token }) {
         total: await command(["ZCARD", key]),
       };
     },
+    async standings(day, scope, count) {
+      const key = boardKey(day, scope);
+      const [total, ...rows] = await command([
+        "EVAL",
+        STANDINGS,
+        2,
+        key,
+        `${key}:rows`,
+        count - 1,
+      ]);
+      return { total, rows: rows.map((row) => JSON.parse(row)) };
+    },
     async rememberLaunch(channelId, launch, seconds) {
       await command([
         "SET",
@@ -134,7 +156,8 @@ export function createRedisStore({ url, token }) {
     async results(day, channelId) {
       const flat = await command(["HGETALL", resultsKey(day, channelId)]);
       const players = [];
-      for (let i = 1; i < flat.length; i += 2) players.push(JSON.parse(flat[i]));
+      for (let i = 1; i < flat.length; i += 2)
+        players.push(JSON.parse(flat[i]));
       return players.sort((a, b) => a.at - b.at);
     },
     async limit(key, max, seconds = 60) {
@@ -201,6 +224,12 @@ export function createMemoryStore() {
           ? { ...me, rank: rows.findIndex((r) => r.score === me.score) + 1 }
           : null,
       };
+    },
+    async standings(day, scope, count) {
+      const rows = [...(boards.get(boardKey(day, scope))?.values() || [])].sort(
+        (a, b) => a.score - b.score,
+      );
+      return { total: rows.length, rows: rows.slice(0, count) };
     },
     async rememberLaunch(channelId, launch, seconds) {
       launches.set(channelId, { launch, until: Date.now() + seconds * 1000 });

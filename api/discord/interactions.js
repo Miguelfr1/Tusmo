@@ -5,10 +5,38 @@ import {
 } from "../../server/tusmon/auth.js";
 import { json, readBody } from "../../server/tusmon/api.js";
 import { createRedisStore } from "../../server/tusmon/store.js";
+import { challengeDay } from "../../server/tusmon/game.js";
+import { statsMessage } from "../../server/tusmon/stats.js";
 
 // Discord keeps an interaction usable for a quarter of an hour, which is the
 // window the result has to be posted in.
 const LAUNCH_TTL = 890;
+// Deep enough to tell a player ranked fortieth where they stand.
+const STANDINGS_DEPTH = 50;
+
+const openStore = () =>
+  createRedisStore({
+    url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
+    token:
+      process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+  });
+
+const whisper = (content) => ({
+  type: 4,
+  data: { content, flags: 64, allowed_mentions: { parse: [] } },
+});
+
+async function stats(interaction) {
+  const userId = interaction.member?.user?.id || interaction.user?.id || "";
+  const guildId = interaction.guild_id;
+  const day = challengeDay();
+  const store = openStore();
+  const [global, guild] = await Promise.all([
+    store.standings(day, "global", STANDINGS_DEPTH),
+    guildId ? store.standings(day, `guild:${guildId}`, STANDINGS_DEPTH) : null,
+  ]);
+  return statsMessage({ day, guild, global, userId, playButton: PLAY_BUTTON });
+}
 
 export async function POST(request) {
   try {
@@ -35,14 +63,7 @@ export async function POST(request) {
     if (launching) {
       if (interaction.channel_id)
         try {
-          const store = createRedisStore({
-            url:
-              process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
-            token:
-              process.env.UPSTASH_REDIS_REST_TOKEN ||
-              process.env.KV_REST_API_TOKEN,
-          });
-          await store.rememberLaunch(
+          await openStore().rememberLaunch(
             interaction.channel_id,
             { token: interaction.token, guildId: interaction.guild_id || null },
             LAUNCH_TTL,
@@ -52,14 +73,16 @@ export async function POST(request) {
         }
       return json({ type: 12 });
     }
-    return json({
-      type: 4,
-      data: {
-        content: "Utilise /tusmon pour ouvrir le Pokémon du jour.",
-        flags: 64,
-        allowed_mentions: { parse: [] },
-      },
-    });
+    if (interaction.type === 2 && interaction.data?.name === "stats") {
+      try {
+        return json(await stats(interaction));
+      } catch {
+        return json(
+          whisper("Le classement est momentanément indisponible. Réessaie."),
+        );
+      }
+    }
+    return json(whisper("Utilise /tusmon pour ouvrir le Pokémon du jour."));
   } catch {
     return json({ error: "Requête invalide." }, 400);
   }
