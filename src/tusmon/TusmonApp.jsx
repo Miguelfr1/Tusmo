@@ -50,7 +50,7 @@ function Result({ round, connection, stats, playedThisSession }) {
     try {
       if (localStorage.getItem(key)) return;
     } catch {
-      // Private browsing: better to offer the share twice than never.
+      // Private browsing: better to post twice than never.
     }
     posted.current = true;
     (async () => {
@@ -62,12 +62,12 @@ function Result({ round, connection, stats, playedThisSession }) {
         } catch {
           // Ignore: the in-memory guard already covers this session.
         }
-        await shareMoment(blob, `tusmon-${round.day}.png`);
+        await shareMoment(blob, connection.session);
       } catch {
         // The Partager button stays as the manual fallback.
       }
     })();
-  }, [playedThisSession, round, connection.user]);
+  }, [playedThisSession, round, connection.user, connection.session]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(resultText(round));

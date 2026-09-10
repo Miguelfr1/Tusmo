@@ -8,7 +8,6 @@ export const demo =
 const prefix = embedded ? "/.proxy" : "";
 let sdk;
 let connection;
-let accessToken = null;
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -89,7 +88,6 @@ export function connectDiscord({ reconnect = false } = {}) {
       const authenticated = await sdk.commands.authenticate({
         access_token: result.access_token,
       });
-      accessToken = result.access_token;
       return {
         session: result.session,
         user: { ...result.user, avatar: authenticated.user?.avatar || null },
@@ -102,34 +100,35 @@ export function connectDiscord({ reconnect = false } = {}) {
 }
 
 export function canShareMoment() {
-  return Boolean(embedded && accessToken && sdk);
+  return Boolean(embedded && sdk?.channelId);
+}
+
+function toBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(new Error("Image illisible."));
+    reader.readAsDataURL(blob);
+  });
 }
 
 /**
- * Posts an image to the channel through Discord's share dialog. The attachment
- * endpoint takes the player's own bearer token, so no bot credentials are
- * involved and the CDN link it returns is ephemeral.
+ * Hands the result card to the app, which posts it in the channel itself.
+ * Nothing is sent from the player's account and no dialog is shown.
  */
-export async function shareMoment(blob, filename = "tusmon.png") {
+export async function shareMoment(blob, session) {
   if (!canShareMoment()) throw new Error("Le partage Discord n’est pas prêt.");
-  const body = new FormData();
-  body.append(
-    "file",
-    new File([blob], filename, { type: blob.type || "image/png" }),
-  );
-  const response = await fetch(
-    `https://discord.com/api/v10/applications/${APPLICATION_ID}/attachment`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body,
-      signal: AbortSignal.timeout(15000),
-    },
-  );
-  if (!response.ok) throw new Error("Discord a refusé l’image du résultat.");
-  const { attachment } = await response.json();
-  if (!attachment?.url) throw new Error("Discord n’a pas renvoyé d’image.");
-  await sdk.commands.openShareMomentDialog({ mediaUrl: attachment.url });
+  const response = await fetch(`${prefix}/api/tusmon-share`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session,
+      channelId: sdk.channelId,
+      image: await toBase64(blob),
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) throw new Error("Le résultat n’a pas pu être publié.");
 }
 
 export function imageUrl(url) {
