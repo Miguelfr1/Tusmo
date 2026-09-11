@@ -3,7 +3,6 @@ import { connectDiscord, requestApi } from "./discord.js";
 
 export function guessMask(round) {
   const letters = Array(round.length).fill(".");
-  letters[0] = round.firstLetter;
   for (const row of round.rows)
     row.marks.forEach((mark, i) => {
       if (mark === "correct") letters[i] = row.word[i];
@@ -127,22 +126,17 @@ export default function useDailyGame({ keyboardEnabled = true } = {}) {
       if (key === "BACKSPACE") {
         const index = Math.max(0, cursor - 1);
         setCursor(index);
-        if (index > 0)
-          setDraft((previous) =>
-            [...previous]
-              .map((letter, i) =>
-                i === index ? guessMask(data.round)[i] : letter,
-              )
-              .join(""),
-          );
+        setDraft((previous) =>
+          [...previous]
+            .map((letter, i) =>
+              i === index ? guessMask(data.round)[i] : letter,
+            )
+            .join(""),
+        );
         return;
       }
       if (!/^[A-Z0-9]$/.test(key)) return;
-      if (cursor === 0 && key === data.round.firstLetter) {
-        setCursor(1);
-        return;
-      }
-      const index = Math.max(1, cursor);
+      const index = cursor;
       if (index >= data.round.length) return;
       setDraft((previous) =>
         [...previous].map((letter, i) => (i === index ? key : letter)).join(""),

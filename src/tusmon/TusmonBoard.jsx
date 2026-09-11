@@ -37,8 +37,7 @@ export default function TusmonBoard({ round, draft, cursor, onKey, disabled }) {
           const current =
             index === round.rows.length && round.status === "playing";
           const word =
-            played?.word ||
-            (current ? draft : round.firstLetter.padEnd(round.length, "."));
+            played?.word || (current ? draft : ".".repeat(round.length));
           return (
             <div className="tm-row" key={index}>
               {[...word].map((letter, i) => {

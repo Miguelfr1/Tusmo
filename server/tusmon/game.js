@@ -137,8 +137,6 @@ export function applyAction(round, action, target, now = new Date()) {
     const solution = normalize(target.name);
     if (word.length !== solution.length)
       throw new GameError(`Il faut ${solution.length} caractères.`);
-    if (word[0] !== solution[0])
-      throw new GameError("La première lettre est offerte : conserve-la.");
     if (!dictionary.has(word))
       throw new GameError("Ce mot n’est pas dans le dictionnaire français.");
     next.guesses.push(word);
@@ -156,7 +154,6 @@ export function publicRound(round, target, now = new Date()) {
     number: challengeNumber(round.day),
     status: round.status,
     revision: round.revision,
-    firstLetter: solution[0],
     length: solution.length,
     rows: round.guesses.map((word) => ({
       word,
